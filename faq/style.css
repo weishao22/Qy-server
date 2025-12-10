@@ -1,0 +1,480 @@
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: url('https://qycloudrevetermux.s.odn.cc/f/5ySr/2025-07-04_23.41.02u.png') no-repeat center center fixed;
+  background-size: cover;
+  margin: 0;
+  padding: 0;
+}
+h1 {
+  background: #2d8cf0;
+  color: #fff;
+  margin: 0;
+  padding: 1em;
+}
+#problem-list {
+  list-style: none;
+  padding: 0 1em;
+}
+#problem-list li {
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  margin: 1em 0;
+  padding: 1em;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px #0001;
+}
+#problem-list li a {
+  text-decoration: none;
+  color: #2d8cf0;
+  font-weight: bold;
+}
+#search {
+  margin: 1em;
+  padding: 0.5em;
+  width: 90%;
+  max-width: 400px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+#problem-content {
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  margin: 2em auto;
+  padding: 2em;
+  border-radius: 8px;
+  max-width: 800px;
+  box-shadow: 0 2px 12px #0002;
+}
+.sticky-nav {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(45, 140, 240, 0.18); 
+  box-shadow: 0 2px 8px #0002;
+  padding: 0;
+  margin: 0 0 1em 0;
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  border-bottom: 1px solid rgba(255,255,255,0.10);
+}
+.nav-container {
+  display: flex;
+  align-items: center;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0.5em 1em;
+  justify-content: space-between;
+}
+.nav-title {
+  color: #fff;
+  font-weight: bold;
+  font-size: 1.2em;
+  margin-right: 2em;
+}
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 1.5em;
+}
+.nav-links a {
+  color: #fff;
+  text-decoration: none;
+  font-size: 1em;
+  transition: color 0.2s;
+}
+.nav-links a:hover {
+  color: #ffd700;
+}
+@media (max-width: 600px) {
+  .nav-container { flex-direction: column; align-items: flex-start; }
+  .nav-title { margin-bottom: 0.5em; }
+  .nav-links { flex-direction: column; align-items: flex-start; gap: 0.5em; }
+  .sticky-nav a { margin: 0 1em 0.5em 0; }
+}
+.sticky-nav {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(45, 140, 240, 0.18);
+  box-shadow: 0 2px 8px #0002;
+  padding: 0;
+  margin: 0 0 1em 0;
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  border-bottom: 1px solid rgba(255,255,255,0.10);
+}
+
+.nav-container {
+  display: flex;
+  align-items: center;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0.5em 1em;
+  justify-content: space-between;
+}
+
+.nav-title {
+  color: #fff;
+  font-weight: bold;
+  font-size: 1.2em;
+  margin-right: 2em;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 1.5em;
+}
+
+.nav-links a {
+  color: #fff;
+  text-decoration: none;
+  font-size: 1em;
+  transition: color 0.2s;
+}
+.nav-links a:hover {
+  color: #ffd700;
+}
+
+/* 添加代码块样式 */
+#problem-content pre {
+  background-color: #2d2d2d;
+  border-radius: 8px;
+  padding: 16px;
+  overflow: auto;
+  color: #f8f8f2;
+  font-family: 'Consolas', monospace;
+  line-height: 1.5;
+  margin: 20px 0;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid #2d8cf0;
+}
+
+#problem-content code {
+  font-family: 'Consolas', monospace;
+  background-color: rgba(45, 140, 240, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #2d8cf0;
+}
+
+#problem-content pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+}
+
+/* 添加加载动画 */
+@keyframes loading {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+#problem-content[data-loading="true"]::before {
+  content: "";
+  display: block;
+  width: 40px;
+  height: 40px;
+  margin: 20px auto;
+  border: 4px solid rgba(45, 140, 240, 0.2);
+  border-top: 4px solid #2d8cf0;
+  border-radius: 50%;
+  animation: loading 1s linear infinite;
+}
+
+/* 添加问题标签样式 */
+.problem-tag[data-tag="操作"] {
+  background-color: #4fc3f7;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  margin-right: 5px;
+}
+.problem-tag[data-tag="维护"] {
+  background-color: #ffb74d;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  margin-right: 5px;
+}
+.problem-tag[data-tag="运维"] {
+  background-color: #9575cd;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  margin-right: 5px;
+}
+.problem-tag[data-tag="玩家"] {
+  background-color: #81c784;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  margin-right: 5px;
+}
+.problem-tag[data-tag="入门"] {
+  background-color: #f8a5c2;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  margin-right: 5px;
+}
+.problem-tag[data-tag="网络"] {
+  background-color: #ff8a65;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  margin-right: 5px;
+}
+
+/* 添加新样式以适应HTML结构 */
+.container {
+  max-width: 1200px;
+  margin: 80px auto 40px;
+  padding: 0 20px;
+}
+
+.page-title {
+  font-size: 2.5rem;
+  color: #333;
+  margin-bottom: 30px;
+  position: relative;
+  padding-bottom: 15px;
+  text-align: center;
+}
+
+.page-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 4px;
+  background: #f8a5c2;
+  border-radius: 2px;
+}
+
+.search-container {
+  margin: 2em 0;
+  position: relative;
+}
+
+.search-box {
+  width: 100%;
+  padding: 15px 20px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+}
+
+.search-box:focus {
+  border-color: #f8a5c2;
+  box-shadow: 0 0 0 3px rgba(248, 165, 194, 0.2);
+  outline: none;
+}
+
+.problem-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.problem-item {
+  background: #fff;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.problem-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.problem-link {
+  display: block;
+  padding: 20px;
+  color: #333;
+}
+
+.problem-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #444;
+}
+
+.problem-summary {
+  color: #666;
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+.problem-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+#menu-box {
+  position: fixed;
+  width: 100%;
+  height: 60px;
+  background: rgba(248, 165, 194, 0.95);
+  z-index: 100;
+  transition: all 0.4s ease;
+  display: flex;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.menu {
+  width: 100%;
+  max-width: 1200px;
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
+}
+
+.logo h2 {
+  color: white;
+  font-size: 28px;
+  transition: all 0.4s ease;
+}
+
+.logo h2:hover {
+  color: #f0f0f0;
+  font-size: 30px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 15px;
+}
+
+.nav-links a {
+  color: white;
+  padding: 8px 15px;
+  border-radius: 4px;
+  transition: all 0.4s ease;
+  font-size: 16px;
+}
+
+.nav-links a:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 17px;
+}
+
+#footer {
+  background: #333;
+  color: #ddd;
+  padding: 50px 0 20px;
+  margin-top: 50px;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.footer-section {
+  flex: 1;
+  min-width: 300px;
+  margin-bottom: 30px;
+}
+
+.footer-section h3 {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  color: #fff;
+  position: relative;
+  padding-bottom: 10px;
+}
+
+.footer-section h3::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 50px;
+  height: 3px;
+  background: #f8a5c2;
+}
+
+.footer-links a {
+  display: block;
+  padding: 8px 0;
+  transition: all 0.3s;
+}
+
+.footer-links a:hover {
+  color: #f8a5c2;
+  padding-left: 5px;
+}
+
+.footer-bottom {
+  text-align: center;
+  padding-top: 30px;
+  border-top: 1px solid #444;
+  margin-top: 20px;
+  font-size: 0.9rem;
+}
+
+.footer-bottom a {
+  color: #f8a5c2;
+  transition: all 0.3s;
+}
+
+.footer-bottom a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .nav-links {
+    display: none;
+  }
+  
+  .menu {
+    justify-content: center;
+  }
+  
+  .page-title {
+    font-size: 2rem;
+  }
+  
+  .problem-link {
+    padding: 15px;
+  }
+  
+  .problem-content {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-title {
+    font-size: 1.8rem;
+  }
+  
+  .footer-section {
+    min-width: 100%;
+  }
+}

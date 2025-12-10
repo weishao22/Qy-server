@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>问题详情 - Qy Server</title>
+  <link rel="icon" href="https://qycloudreve.s.odn.cc/f/XDZfr/novaskin-wallpaper-insummer%20%281%29.jpg" type="image/x-icon">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked/lib/marked.umd.js"></script>
+  <style>
+    .bg-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  background: url('https://t.alcy.cc/ycy') center/cover no-repeat;
+  pointer-events: none;
+}
+#content, .loading, #menu-box, #footer {
+  position: relative;
+  z-index: 1;
+}
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "微软雅黑", "Microsoft YaHei", Roboto, Arial, sans-serif;
+    }
+    
+    html, body {
+      width: 100%;
+      overflow-x: hidden;
+      background-color: #f5f5f5;
+      color: #5F5F5F;
+      scroll-behavior: smooth;
+    }
+    
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+    
+    /* 加载动画 */
+    .loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #FCFCFC;
+      z-index: 1000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: opacity 0.5s ease;
+    }
+    
+    .loading-content {
+      text-align: center;
+    }
+    
+    .loading-spinner {
+      width: 80px;
+      height: 80px;
+      border: 8px solid rgba(248, 165, 194, 0.2);
+      border-top: 8px solid #f8a5c2;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* 导航栏 */
+    #menu-box {
+      position: fixed;
+      width: 100%;
+      height: 60px;
+      background: none;
+      z-index: 100;
+      transition: all 0.4s ease;
+      display: flex;
+      justify-content: center;
+    }
+    
+    .menu {
+      width: 100%;
+      max-width: 1200px;
+      padding: 0 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 100%;
+    }
+    
+    .logo h2 {
+      color: #C6CDD4;
+      font-size: 28px;
+      transition: all 0.4s ease;
+    }
+    
+    .logo h2:hover {
+      color: white;
+      font-size: 30px;
+    }
+    
+    .nav-links {
+      display: flex;
+      gap: 15px;
+    }
+    
+    .nav-links a {
+      color: #C6CDD4;
+      padding: 8px 15px;
+      border-radius: 4px;
+      transition: all 0.4s ease;
+      font-size: 16px;
+    }
+    
+    .nav-links a:hover {
+      color: white;
+      background: rgba(255, 255, 255, 0.1);
+      font-size: 17px;
+    }
+    
+    /* 横幅区域 */
+    #banner {
+      background: linear-gradient(135deg, #f8a5c2 0%, #a56de2 100%);
+      background-size: cover;
+      background-position: center;
+      width: 100%;
+      height: 40vh;
+      min-height: 300px;
+      display: flex;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .banner-content {
+      position: relative;
+      z-index: 2;
+      padding: 0 10%;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+      text-align: center;
+    }
+    
+    .banner-content::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 120%;
+      background: url('') center/cover;
+      opacity: 0.15;
+      z-index: -1;
+    }
+    
+    .join-item {
+      margin-bottom: 30px;
+      color: white;
+    }
+    
+    .join-item h2 {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    
+    /* 内容区域 - 添加壁纸 */
+    #content {
+      padding: 60px 0;
+      position: relative;
+      min-height: 60vh;
+    }
+    
+    #content::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.3);
+      z-index: 0;
+    }
+    
+    .content-box {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 0 20px;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .problem-header {
+      margin-bottom: 30px;
+      text-align: center;
+      position: relative;
+    }
+    
+    .problem-header h2 {
+      font-size: 2.2rem;
+      color: #333;
+      margin-bottom: 15px;
+      position: relative;
+      padding-bottom: 15px;
+    }
+    
+    .problem-header h2::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 4px;
+      background: #f8a5c2;
+      border-radius: 2px;
+    }
+    
+    .problem-tags {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .problem-tags mark {
+      background: rgba(248, 165, 194, 0.2);
+      color: #f8a5c2;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+    }
+    
+    /* 返回按钮样式修改 - 靠左对齐 */
+    .back-button-container {
+      text-align: left;
+      margin-bottom: 20px;
+    }
+    
+    .back-button {
+      display: inline-block;
+      padding: 0.8em 1.5em;
+      border: none;
+      border-radius: 4px;
+      background: #f8a5c2;
+      color: #fff;
+      font-size: 1em;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 10px rgba(248, 165, 194, 0.3);
+    }
+    
+    .back-button:hover {
+      background: #f78fb3;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 15px rgba(248, 165, 194, 0.4);
+    }
+    
+    /* 问题内容样式 */
+    #problem-content {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 2.5em;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07);
+      margin: 2em auto;
+      max-width: 800px;
+    }
+    
+    /* Markdown内容样式 */
+    #problem-content h1,
+    #problem-content h2,
+    #problem-content h3 {
+      color: #333;
+      margin: 1.5em 0 0.8em;
+      border-bottom: 1px solid #f0f0f0;
+      padding-bottom: 0.3em;
+    }
+    
+    #problem-content h1 {
+      font-size: 1.8rem;
+    }
+    
+    #problem-content h2 {
+      font-size: 1.6rem;
+    }
+    
+    #problem-content h3 {
+      font-size: 1.4rem;
+    }
+    
+    #problem-content p {
+      line-height: 1.7;
+      margin-bottom: 1.2em;
+      color: #555;
+    }
+    
+    #problem-content ul,
+    #problem-content ol {
+      margin-bottom: 1.2em;
+      padding-left: 1.5em;
+    }
+    
+    #problem-content li {
+      margin-bottom: 0.5em;
+      line-height: 1.6;
+    }
+    
+    #problem-content blockquote {
+      border-left: 4px solid #f8a5c2;
+      padding-left: 1em;
+      margin: 1.5em 0;
+      color: #666;
+      background: rgba(248, 165, 194, 0.05);
+      padding: 1em;
+      border-radius: 0 8px 8px 0;
+    }
+    
+    #problem-content code {
+      background-color: rgba(248, 165, 194, 0.1);
+      padding: 0.2em 0.4em;
+      border-radius: 4px;
+      color: #f8a5c2;
+      font-family: 'Consolas', monospace;
+    }
+    
+    #problem-content pre {
+      background-color: #2d2d2d;
+      border-radius: 8px;
+      padding: 1.2em;
+      overflow: auto;
+      color: #f8f8f2;
+      font-family: 'Consolas', monospace;
+      line-height: 1.5;
+      margin: 1.5em 0;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      border-left: 4px solid #f8a5c2;
+    }
+    
+    #problem-content pre code {
+      background: none;
+      padding: 0;
+      color: inherit;
+    }
+    
+    #problem-content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5em 0;
+    }
+    
+    #problem-content table th,
+    #problem-content table td {
+      border: 1px solid #ddd;
+      padding: 0.8em;
+    }
+    
+    #problem-content table th {
+      background: rgba(248, 165, 194, 0.1);
+    }
+    
+    #problem-content a {
+      color: #2d8cf0;
+      transition: all 0.3s;
+    }
+    
+    #problem-content a:hover {
+      color: #f8a5c2;
+      text-decoration: underline;
+    }
+    
+    /* 加载动画 */
+    @keyframes loading {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    #problem-content[data-loading="true"]::before {
+      content: "";
+      display: block;
+      width: 40px;
+      height: 40px;
+      margin: 20px auto;
+      border: 4px solid rgba(248, 165, 194, 0.2);
+      border-top: 4px solid #f8a5c2;
+      border-radius: 50%;
+      animation: loading 1s linear infinite;
+    }
+    
+    /* 页脚 */
+    #footer {
+      background: #333;
+      color: #ddd;
+      padding: 50px 0 20px;
+      position: relative;
+    }
+    
+    #footer::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url('') center/cover fixed;
+      opacity: 0.1;
+      z-index: 0;
+    }
+    
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .footer-section {
+      flex: 1;
+      min-width: 300px;
+      margin-bottom: 30px;
+    }
+    
+    .footer-section h3 {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      color: #fff;
+      position: relative;
+      padding-bottom: 10px;
+    }
+    
+    .footer-section h3::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 50px;
+      height: 3px;
+      background: #f8a5c2;
+    }
+    
+    .footer-links a {
+      display: block;
+      padding: 8px 0;
+      transition: all 0.3s;
+    }
+    
+    .footer-links a:hover {
+      color: #f8a5c2;
+      padding-left: 5px;
+    }
+    
+    .footer-bottom {
+      text-align: center;
+      padding-top: 30px;
+      border-top: 1px solid #444;
+      margin-top: 20px;
+      font-size: 0.9rem;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .footer-bottom a {
+      color: #f8a5c2;
+      transition: all 0.3s;
+    }
+    
+    .footer-bottom a:hover {
+      text-decoration: underline;
+    }
+    
+    /* 音乐控制 */
+    #musicControl {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+      background: rgba(128, 128, 128, 0.3);
+      backdrop-filter: blur(10px);
+      padding: 12px;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      transition: all 0.3s ease;
+    }
+    
+    #musicControl:hover {
+      transform: scale(1.1);
+      background: rgba(248, 165, 194, 0.5) !important;
+    }
+    
+    #musicControl:active {
+      transform: scale(0.95);
+    }
+    
+    #musicIcon {
+      width: 30px;
+      height: 30px;
+      opacity: 0.9;
+      display: block;
+    }
+    
+    /* 响应式设计 */
+    @media (max-width: 900px) {
+      .join-item h2 {
+        font-size: 2rem;
+      }
+      
+      #banner {
+        height: 35vh;
+        min-height: 250px;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .nav-links {
+        display: none;
+      }
+      
+      .menu {
+        justify-content: center;
+      }
+      
+      .footer-section {
+        min-width: 100%;
+      }
+      
+      #content {
+        background-attachment: scroll;
+      }
+      
+      #problem-content {
+        padding: 1.5em;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .join-item h2 {
+        font-size: 1.8rem;
+      }
+      
+      .problem-header h2 {
+        font-size: 1.8rem;
+      }
+      
+      #problem-content {
+        padding: 1.2em;
+      }
+      
+      #problem-content h1 {
+        font-size: 1.5rem;
+      }
+      
+      #problem-content h2 {
+        font-size: 1.4rem;
+      }
+      
+      #problem-content h3 {
+        font-size: 1.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 固定背景层 -->
+<div class="bg-fixed"></div>
+  <!-- 加载动画 -->
+  <div class="loading">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <h2>正在加载问题详情...</h2>
+    </div>
+  </div>
+  
+  <!-- 导航栏 -->
+  <div id="menu-box">
+    <div class="menu">
+      <div class="logo">
+        <h2><a href="index.html"><i class="fas fa-cube"></i> Qy Server</a></h2>
+      </div>
+      <div class="nav-links">
+        <a href="http://qyserver.s.odn.cc/"><i class="fas fa-home"></i> 首页</a>
+        <a href="/down/"><i class="fas fa-download"></i> 客户端</a>
+        <a href="/mc/"><i class="fas fa-search"></i> 在线查询</a>
+        <a href="/UpdateLog/"><i class="fas fa-history"></i> 更新日志</a>
+        <a href="/Map/"><i class="fas fa-map"></i> 地图</a>
+        <a href="/faq/"><i class="fas fa-question-circle"></i> FAQ</a>
+        <a href="/gy/"><i class="fas fa-info-circle"></i> 关于</a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 内容区域 -->
+  <section id="content">
+    <div class="content-box">
+      <!-- 返回按钮容器 - 靠左对齐 -->
+      <div class="back-button-container">
+        <button onclick="window.history.back()" class="back-button">← 返回</button>
+      </div>
+      
+      <div class="problem-header">
+        <h2 id="problem-title">加载中...</h2>
+        <div class="problem-tags" id="problem-tags"></div>
+      </div>
+      
+      <div id="problem-content">加载中...</div>
+    </div>
+  </section>
+  
+  <!-- 页脚 -->
+  <footer id="footer">
+    <div class="footer-content">
+      <div class="footer-section">
+        <h3>关于我们</h3>
+        <p>Qy Server是一个专注于Minecraft基岩版的生存服务器，提供稳定、有趣的游戏环境，让玩家可以自由建造、探索和社交。</p>
+      </div>
+      
+      <div class="footer-section">
+        <h3>快速链接</h3>
+        <div class="footer-links">
+          <a href="/rules/"><i class="fas fa-arrow-right"></i> 服务器规则</a>
+          <a href="/command/"><i class="fas fa-arrow-right"></i> 服务器指令</a>
+          <a href="/UpdateLog/"><i class="fas fa-arrow-right"></i> 更新日志</a>
+          <a href="/faq/"><i class="fas fa-arrow-right"></i> 常见问题</a>
+          <a href="https://qyservermap.s.odn.cc/"><i class="fas fa-arrow-right"></i> 地图</a>
+        </div>
+      </div>
+      
+      <div class="footer-section">
+        <h3>联系我们</h3>
+        <div class="footer-links">
+          <a href="mailto:weishao22@outlook.com"><i class="fas fa-envelope"></i> weishao22@outlook.com</a>
+          <a href="https://qm.qq.com/q/Ur5Pf31XMG"><i class="fab fa-qq"></i> QQ群: 1029879634</a>
+          <a href="https://discord.gg/WGcKjt7BNG"><i class="fab fa-discord"></i> Discord</a>
+        </div>
+      </div>
+    </div>
+    
+    <div class="footer-bottom">
+      <a href="https://stats.uptimerobot.com/hgMdAGlsWu" target="_blank">Uptime Robot</a> | 
+      &copy; 2025 Qy Server 版权所有
+    </div>
+  </footer>
+  
+  <!-- 背景音乐 -->
+  <audio id="bgMusic" loop>
+    <source src="https://qycloudrevetermux.s.odn.cc/f/d/lODc6/Motions.mp3" type="audio/mpeg">
+  </audio>
+  
+  <!-- 音乐控制按钮 -->
+  <div id="musicControl">
+    <img id="musicIcon" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2ZmZiI+PHBhdGggZD0iTTMgOXY2aDNsNS41IDVWMTRsLTQuNS00LjVIM1ptMTAtMi41VjNIMTB2MTMuNWwtMi41LTIuNS0yIDIgNSA1IDUtNVY2LjV6Ii8+PC9zdmc+" alt="音乐控制">
+  </div>
+
+  <script>
+    // 问题列表配置（与index.js保持同步）
+    const problems = [
+    ];
+
+    // 获取 URL 参数
+    function getQuery(name) {
+      const m = location.search.match(new RegExp('(?:[?&]' + name + '=)([^&]+)'));
+      return m ? decodeURIComponent(m[1]) : '';
+    }
+
+    // 页面加载完成后隐藏加载动画
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        document.querySelector('.loading').style.opacity = '0';
+        setTimeout(function() {
+          document.querySelector('.loading').style.display = 'none';
+        }, 500);
+      }, 1500);
+      
+      // 加载问题内容
+      const id = getQuery('id');
+      const problem = problems.find(p => p.id === id);
+      const contentElement = document.getElementById('problem-content');
+      const titleElement = document.getElementById('problem-title');
+      const tagsElement = document.getElementById('problem-tags');
+
+      if (!problem) {
+        contentElement.innerHTML = '未找到该问题。';
+        titleElement.textContent = '问题不存在';
+      } else {
+        // 设置标题和标签
+        titleElement.textContent = problem.title;
+        document.title = problem.title + ' - 问题详情';
+        
+        if (problem.tags && problem.tags.length > 0) {
+          tagsElement.innerHTML = problem.tags.map(t => `<mark>${t}</mark>`).join(' ');
+        }
+        
+        // 显示加载状态
+        contentElement.setAttribute('data-loading', 'true');
+        
+        fetch(problem.file)
+          .then(r => {
+            if (!r.ok) throw new Error('文件加载失败: ' + r.status);
+            return r.text();
+          })
+          .then(md => {
+            contentElement.innerHTML = marked.parse(md);
+          })
+          .catch(error => {
+            console.error(error);
+            contentElement.innerHTML = '<p>加载内容时出错：' + error.message + '</p>';
+          })
+          .finally(() => {
+            // 移除加载状态
+            contentElement.removeAttribute('data-loading');
+          });
+      }
+    });
+
+    // 导航栏滚动效果
+    window.addEventListener('scroll', function() {
+      const menuBox = document.getElementById('menu-box');
+      const banner = document.getElementById('banner');
+      const bannerHeight = banner.offsetHeight;
+      
+      if (window.scrollY > bannerHeight * 0.2) {
+        menuBox.style.background = "#FFFFFF";
+        menuBox.style.boxShadow = "0px 0px 15px rgba(0,0,0,0.1)";
+        menuBox.style.height = "60px";
+      } else {
+        menuBox.style.background = "none";
+        menuBox.style.boxShadow = "none";
+      }
+    });
+    
+    // 音乐播放控制
+    const bgMusic = document.getElementById('bgMusic');
+    const musicIcon = document.getElementById('musicIcon');
+    let musicPlaying = false;
+    
+    // 音乐控制按钮点击事件
+    document.getElementById('musicControl').addEventListener('click', function() {
+      if (musicPlaying) {
+        bgMusic.pause();
+        musicIcon.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2ZmZiI+PHBhdGggZD0iTTMgOXY2aDNsNS41IDVWMTRsLTQuNS00LjVIM3ptMTAgNnYtMTJIMTB2MTJsMy41IDMuPS0yIDEuNS02LTYgNi02IDIgMS41LTMuNSAzLjV6Ii8+PC9zdmc+";
+      } else {
+        bgMusic.play().catch(e => console.log("播放失败:", e));
+        musicIcon.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2ZmZiI+PHBhdGggZD0iTTMgOXY6aDNsNS41IDVWMTRsLTQuNS00LjVIM1ptMTAtMi41VjNIMTB2MTMuNWwtMi41LTIuNS0yIDIgNSA1IDUtNVY2LjV6Ii8+PC9zdmc+";
+      }
+      musicPlaying = !musicPlaying;
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qy Server | 客户端下载</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+   <link rel="icon" href="https://qycloudreve.s.odn.cc/f/XDZfr/novaskin-wallpaper-insummer%20%281%29.jpg" type="image/x-icon">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "微软雅黑", "Microsoft YaHei", Roboto, Arial, sans-serif;
+        }
+        
+        html, body {
+            width: 100%;
+            overflow-x: hidden;
+            background-color: #ff9dc6;
+            color: #5F5F5F;
+            scroll-behavior: smooth;
+        }
+        
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        /* 加载动画 */
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #FCFCFC;
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s ease;
+        }
+        
+        .loading-content {
+            text-align: center;
+        }
+        
+        .loading-spinner {
+            width: 80px;
+            height: 80px;
+            border: 8px solid rgba(248, 165, 194, 0.2);
+            border-top: 8px solid #f8a5c2;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 导航栏 */
+        #menu-box {
+            position: fixed;
+            width: 100%;
+            height: 60px;
+            background: none;
+            z-index: 100;
+            transition: all 0.4s ease;
+            display: flex;
+            justify-content: center;
+        }
+        
+        .menu {
+            width: 100%;
+            max-width: 1200px;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 100%;
+        }
+        
+        .logo h2 {
+            color: #C6CDD4;
+            font-size: 28px;
+            transition: all 0.4s ease;
+        }
+        
+        .logo h2:hover {
+            color: white;
+            font-size: 30px;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .nav-links a {
+            color: #C6CDD4;
+            padding: 8px 15px;
+            border-radius: 4px;
+            transition: all 0.4s ease;
+            font-size: 16px;
+        }
+        
+        .nav-links a:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+            font-size: 17px;
+        }
+        
+        /* 横幅区域 */
+        #banner {
+            background: linear-gradient(135deg, #f8a5c2 0%, #a56de2 100%);
+            background-size: cover;
+            background-position: center;
+            width: 100%;
+            height: 100vh;
+            min-height: 700px;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .banner-content {
+            position: relative;
+            z-index: 2;
+            padding: 0 10%;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        .banner-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 120%;
+            background: url('') center/cover;
+            opacity: 0.15;
+            z-index: -1;
+        }
+        
+        .join-item {
+            margin-bottom: 50px;
+            color: white;
+        }
+        
+        .join-item h2 {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .join-item p {
+            font-size: 1.5rem;
+            max-width: 700px;
+            line-height: 1.6;
+        }
+        
+        .join-buttons {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .join-buttons a {
+            display: inline-block;
+            padding: 15px 30px;
+            border: 3px solid white;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: bold;
+            transition: all 0.4s ease;
+            text-align: center;
+            min-width: 200px;
+        }
+        
+        .join-buttons a:hover {
+            color: #f8a5c2;
+            background: white;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        }
+        
+        /* 内容区域 */
+        #content {
+            background: white;
+            padding: 80px 0;
+            position: relative;
+        }
+        
+        .content-box {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .content-box h2 {
+            font-size: 2.5rem;
+            color: #333;
+            margin-bottom: 30px;
+            position: relative;
+            padding-bottom: 15px;
+        }
+        
+        .content-box h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100px;
+            height: 4px;
+            background: #f8a5c2;
+            border-radius: 2px;
+        }
+        
+        hr.divider {
+            margin: 40px 0;
+            height: 2px;
+            background: #EBEBEB;
+            border: none;
+        }
+        
+        .content-section {
+            margin-bottom: 60px;
+        }
+        
+        .content-text h3 {
+            font-size: 1.8rem;
+            color: #333;
+            margin: 25px 0 15px;
+            line-height: 1.4;
+        }
+        
+        .content-text p {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+        
+        .content-text a {
+            color: #337AB7;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        
+        .content-text a:hover {
+            color: #f8a5c2;
+            text-decoration: underline;
+        }
+        
+        .content-image {
+            float: right;
+            margin: 20px 0 20px 40px;
+            width: 45%;
+            max-width: 500px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 8px 8px 20px rgba(234, 234, 234, 0.8);
+        }
+        
+        .content-image img {
+            width: 100%;
+            height: auto;
+            display: block;
+            transition: transform 0.5s ease;
+        }
+
+        .content-image img:hover {
+            transform: scale(1.05);
+        }
+        
+        .add-server-btn {
+            display: inline-block;
+            background: #f8a5c2;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin: 20px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            box-shadow: 0 5px 15px rgba(248, 165, 194, 0.4);
+        }
+        
+        .add-server-btn:hover {
+            background: #f78fb3;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(248, 165, 194, 0.6);
+        }
+        
+        /* 页脚 */
+        #footer {
+            background: #333;
+            color: #ddd;
+            padding: 50px 0 20px;
+        }
+        
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        
+        .footer-section {
+            flex: 1;
+            min-width: 300px;
+            margin-bottom: 30px;
+        }
+        
+        .footer-section h3 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #fff;
+            position: relative;
+            padding-bottom: 10px;
+        }
+        
+        .footer-section h3::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 50px;
+            height: 3px;
+            background: #f8a5c2;
+        }
+        
+        .footer-links a {
+            display: block;
+            padding: 8px 0;
+            transition: all 0.3s;
+        }
+        
+        .footer-links a:hover {
+            color: #f8a5c2;
+            padding-left: 5px;
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid #444;
+            margin-top: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .footer-bottom a {
+            color: #f8a5c2;
+            transition: all 0.3s;
+        }
+        
+        .footer-bottom a:hover {
+            text-decoration: underline;
+        }
+        
+        /* 音乐控制 */
+        #musicControl {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(128, 128, 128, 0.3);
+            backdrop-filter: blur(10px);
+            padding: 12px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        #musicControl:hover {
+            transform: scale(1.1);
+            background: rgba(248, 165, 194, 0.5) !important;
+        }
+        
+        #musicControl:active {
+            transform: scale(0.95);
+        }
+        
+        #musicIcon {
+            width: 30px;
+            height: 30px;
+            opacity: 0.9;
+            display: block;
+        }
+        
+        /* 弹窗 */
+        .popup-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .popup-content {
+            background-color: #fff;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            padding: 30px;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.3);
+            animation: popupFadeIn 0.4s;
+        }
+        
+        @keyframes popupFadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .popup-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f8a5c2;
+        }
+        
+        .popup-message {
+            margin-bottom: 25px;
+            line-height: 1.7;
+            color: #555;
+            font-size: 16px;
+        }
+        
+        .popup-message p {
+            margin-bottom: 15px;
+        }
+        
+        .popup-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .popup-checkbox {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+        }
+        
+        .popup-btn {
+            padding: 10px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            border: none;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .popup-confirm {
+            background-color: #f8a5c2;
+            color: white;
+        }
+        
+        .popup-confirm:hover {
+            background-color: #f78fb3;
+        }
+        
+        /* 规则页面样式 */
+        .rules-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .rule-category {
+            margin-bottom: 40px;
+        }
+        
+        .rule-category h3 {
+            color: #f8a5c2;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .rule-item {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #f8a5c2;
+        }
+        
+        .rule-item h4 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.3rem;
+        }
+        
+        .rule-item p {
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        /* 指令页面样式 */
+        .command-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .command-category {
+            margin-bottom: 40px;
+        }
+        
+        .command-category h3 {
+            color: #a56de2;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .command-item {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .command-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .command-icon {
+            width: 40px;
+            height: 40px;
+            background: #f8a5c2;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            color: white;
+            font-size: 1.2rem;
+        }
+        
+        .command-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .command-desc {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        
+        .command-usage {
+            background: #f0f0f0;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            margin-top: 10px;
+            color: #333;
+        }
+        
+        /* 下载页面样式 */
+        .download-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+        
+        .download-platform {
+            margin-bottom: 40px;
+        }
+        
+        .download-platform h3 {
+            color: #5f9ea0;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .download-item {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .download-item:hover {
+            border-color: #f8a5c2;
+            transform: translateY(-5px);
+        }
+        
+        .download-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #f8a5c2 0%, #a56de2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 20px;
+            color: white;
+            font-size: 1.8rem;
+        }
+        
+        .download-info {
+            flex: 1;
+        }
+        
+        .download-info h4 {
+            font-size: 1.4rem;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        
+        .download-info p {
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .download-btn {
+            display: inline-block;
+            background: #f8a5c2;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .download-btn:hover {
+            background: #f78fb3;
+            transform: translateY(-2px);
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 900px) {
+            .content-image {
+                float: none;
+                width: 100%;
+                max-width: 100%;
+                margin: 20px 0;
+            }
+            
+            .join-item h2 {
+                font-size: 2.8rem;
+            }
+            
+            .join-item p {
+                font-size: 1.3rem;
+            }
+            
+            .download-item {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .download-icon {
+                margin-right: 0;
+                margin-bottom: 15px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .menu {
+                justify-content: center;
+            }
+            
+            .join-buttons {
+                flex-direction: column;
+            }
+            
+            .join-buttons a {
+                min-width: auto;
+                width: 100%;
+            }
+            
+            .footer-section {
+                min-width: 100%;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .join-item h2 {
+                font-size: 2.2rem;
+            }
+            
+            .join-item p {
+                font-size: 1.1rem;
+            }
+            
+            .content-box h2 {
+                font-size: 2rem;
+            }
+            
+            .popup-footer {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 加载动画 -->
+    <div class="loading">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h2>正在加载Qy Server...</h2>
+        </div>
+    </div>
+    
+    <!-- 弹窗提醒 -->
+    <div class="popup-overlay" id="popupOverlay">
+        <div class="popup-content">
+            <div class="popup-title">重要提醒</div>
+            <div class="popup-message">
+                <p>欢迎来到Qy Server！我们是一个基岩版1.21.50+的Minecraft服务器</p>
+                <p>请注意：网站背景音乐来自FreePD</p>
+                <p>请务必遵守服务器规则，共同维护良好的游戏环境</p>
+            </div>
+            <div class="popup-footer">
+                <label class="popup-checkbox">
+                    <input type="checkbox" id="dontShowAgain"> 不再显示此消息
+                </label>
+                <button class="popup-btn popup-confirm" id="popupConfirm">知道了</button>
+            </div>
+        </div>
+    </div>
+    <!-- 导航栏 -->
+    <div id="menu-box">
+        <div class="menu">
+            <div class="logo">
+                <h2><a href="http://qyserver.s.odn.cc/"><i class="fas fa-cube"></i> Qy Server</a></h2>
+            </div>
+            <div class="nav-links">
+                <a href="http://qyserver.s.odn.cc/"><i class="fas fa-home"></i> 首页</a>
+                <a href="/down/"><i class="fas fa-download"></i> 客户端</a>
+                <a href="/mc/"><i class="fas fa-search"></i> 在线查询</a>
+                <a href="/UpdateLog/"><i class="fas fa-history"></i> 更新日志</a>
+                <a href="https://qyservermap.s.odn.cc/"><i class="fas fa-map"></i> 地图</a>
+                <a href="/faq/"><i class="fas fa-question-circle"></i> FAQ</a>
+                <a href="/gy/"><i class="fas fa-info-circle"></i> 关于</a>
+            </div>
+        </div>
+    </div>
+    
+    <section id="command-section" style="background-color: #f9f9f9;">
+        <div class="content-box">
+            <hr class="divider">
+            
+        </div>
+    <!-- 内容区域 - 下载页面 -->
+    <section id="download-section">
+        <div class="content-box">
+            <h2>客户端下载</h2>
+            <hr class="divider">
+            
+            <div class="download-container">
+                <div class="download-platform">
+                    <h3>Windows 客户端</h3>
+                    <div class="download-item">
+                        <div class="download-icon">
+                            <i class="fab fa-windows"></i>
+                        </div>
+                        <div class="download-info">
+                            <h4>标准版客户端</h4>
+                            <p>适用于Windows 10/11系统</p>
+                            <p>文件大小: 0.85GB | 版本: v1.21.94</p>
+                          <p>注意软件为微软应用商店上的官方原版 Minecraft，游戏文件完全没有被修改</p>
+                            <a href="" class="download-btn"><i class="fas fa-download"></i> 立即下载</a>
+                        </div>
+                    </div>
+                    
+                    <div class="download-item">
+                        <div class="download-icon">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <div class="download-info">
+                            <h4>高性能版客户端</h4>
+                            <p>优化版客户端，适合低配电脑使用，提升游戏流畅度</p>
+                            <p>文件大小: 850MB | 版本: v1.21.50.2</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="download-platform">
+                    <h3>移动端客户端</h3>
+                    <div class="download-item">
+                        <div class="download-icon">
+                            <i class="fab fa-android"></i>
+                        </div>
+                        <div class="download-info">
+                            <h4>Android 客户端</h4>
+                            <p>适用于安卓手机和平板设备</p>
+                            <p>文件大小: 520MB | 版本: v1.21.94</p>
+                          <p>仅供体验或供学习交流，请在24小时内删除</p>
+                            <a href="" class="download-btn"><i class="fas fa-download"></i> 立即下载</a>
+                        </div>
+                    </div>
+                    
+                    <div class="download-item">
+                        <div class="download-icon">
+                            <i class="fab fa-apple"></i>
+                        </div>
+                        <div class="download-info">
+                            <h4>iOS 客户端</h4>
+                            <p>适用于iPhone和iPad设备，需要iOS 14.0或更高版本</p>
+                            <p>文件大小: 574MB | 版本: v1.21.101</p>
+                          <p>注意软件为官方原版 Minecraft</p>
+                          <a href="" class="download-btn"><i class="fas fa-download"></i> 立即下载</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="download-platform">
+                    <h3>其他资源下载</h3>
+                    <div class="download-item">
+                        <div class="download-icon">
+                            <i class="fas fa-file-archive"></i>
+                        </div>
+                        <div class="download-info">
+                            <h4>预下载资源包</h4>
+                            <p>服务器资源包，解决无法在游戏下载，下载后导入即可</p>
+                            <p>文件大小: 62MB | 更新日期: 2025-12-09</p>
+                           <a href="https://qycloudreve.s.odn.cc/f/xjqs1/QYServer%E6%9D%90%E8%B4%A8%E7%BC%93%E5%AD%98%E5%8C%85_v1.0_20251209.mcaddon" class="download-btn"><i class="fas fa-download"></i> 立即下载</a>
+                        </div>
+                    </div>
+                    
+                    <div class="download-item">
+                        <div class="download-icon">
+                            <i class="fas fa-cloud-download-alt"></i>
+                        </div>
+                        <div class="download-info">
+                            <h4>服务器地图备份</h4>
+                            <p>服务器地图备份，单机游玩使用</p>
+                            <p>文件大小: 3.6GB | 更新日期: 2025-10-7</p>
+                          <a href="https://qycloudreve.s.odn.cc/f/J6Auw/qyserver.mcworld" class="download-btn"><i class="fas fa-download"></i> 立即下载</a>
+                        </div>
+                    </div>
+                  
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- 页脚 -->
+    <footer id="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>关于我们</h3>
+                <p>Qy Server是一个专注于Minecraft基岩版的生存服务器，提供稳定、有趣的游戏环境，让玩家可以自由建造、探索和社交。</p>
+            </div>
+            
+            <div class="footer-section">
+                <h3>快速链接</h3>
+                <div class="footer-links">
+                    <a href="/rules/"><i class="fas fa-arrow-right"></i> 服务器规则</a>
+                    <a href="/command/"><i class="fas fa-arrow-right"></i> 服务器指令</a>
+                    <a href="/UpdateLog/"><i class="fas fa-arrow-right"></i> 更新日志</a>
+                    <a href="/faq/"><i class="fas fa-arrow-right"></i> 常见问题</a>
+                  <a href="https://qyservermap.s.odn.cc/"><i class="fas fa-arrow-right"></i> 地图</a>
+                  <a href="http://qyserver.s.odn.cc/" id="resetPopup"><i class="fas fa-arrow-right"></i>重置弹窗</a>
+                </div>
+            </div>
+            
+            <div class="footer-section">
+                <h3>联系我们</h3>
+                <div class="footer-links">
+                    <a href="mailto:weishao22@outlook.com"><i class="fas fa-envelope"></i> weishao22@outlook.com</a>
+                    <a href="https://qm.qq.com/q/Ur5Pf31XMG"><i class="fab fa-qq"></i> QQ群: 1029879634</a>
+                    <a href="https://discord.gg/WGcKjt7BNG"><i class="fab fa-discord"></i> Discord</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <a href="https://stats.uptimerobot.com/hgMdAGlsWu" target="_blank">Uptime Robot</a> | 
+            &copy; 2025 Qy Server 版权所有</p>
+        </div>
+    </footer>
+    
+    <!-- 背景音乐 -->
+    <audio id="bgMusic" loop>
+        <source src="http://qycloudrevetermux.s.odn.cc/f/d/lODc6/Motions.mp3" type="audio/mpeg">
+    </audio>
+    
+    <!-- 音乐控制按钮 -->
+    <div id="musicControl">
+        <img id="musicIcon" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2ZmZiI+PHBhdGggZD0iTTMgOXY2aDNsNS41IDVWMTRsLTQuNS00LjVIM1ptMTAtMi41VjNIMTB2MTMuNWwtMi41LTIuNS0yIDIgNSA1IDUtNVY2LjV6Ii8+PC9zdmc+" alt="音乐控制">
+    </div>
+    
+    <script>
+        // 页面加载完成后隐藏加载动画
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                document.querySelector('.loading').style.opacity = '0';
+                setTimeout(function() {
+                    document.querySelector('.loading').style.display = 'none';
+                }, 500);
+            }, 1500);
+        });
+        
+        // 在页面加载时检查是否应该显示弹窗
+        document.addEventListener('DOMContentLoaded', function() {
+            // 检查localStorage中是否有"dontShowPopu"标志
+            if (localStorage.getItem('dontShowPopu') !== 'true') {
+                // 显示弹窗
+                setTimeout(function() {
+                    document.getElementById('popupOverlay').style.display = 'flex';
+                }, 2000);
+            }
+            
+            // 确认按钮点击事件
+            document.getElementById('popupConfirm').addEventListener('click', function() {
+                // 如果勾选了"不再显示"，则保存到localStorage
+                if (document.getElementById('dontShowAgain').checked) {
+                    localStorage.setItem('dontShowPopu', 'true');
+                }
+                document.getElementById('popupOverlay').style.display = 'none';
+            });
+            
+            // 点击遮罩层也可关闭弹窗
+            document.getElementById('popupOverlay').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.style.display = 'none';
+                }
+            });
+        });
+        
+        // 导航栏滚动效果
+        window.addEventListener('scroll', function() {
+            const menuBox = document.getElementById('menu-box');
+            const banner = document.getElementById('banner');
+            const bannerHeight = banner.offsetHeight;
+            
+            if (window.scrollY > bannerHeight * 0.2) {
+                menuBox.style.background = "#FFFFFF";
+                menuBox.style.boxShadow = "0px 0px 15px rgba(0,0,0,0.1)";
+                menuBox.style.height = "60px";
+            } else {
+                menuBox.style.background = "none";
+                menuBox.style.boxShadow = "none";
+            }
+        });
+        
+        // 音乐播放控制
+        const bgMusic = document.getElementById('bgMusic');
+        const musicIcon = document.getElementById('musicIcon');
+        let musicPlaying = false;
+        
+        // 音乐控制按钮点击事件
+        document.getElementById('musicControl').addEventListener('click', function() {
+            if (musicPlaying) {
+                bgMusic.pause();
+                musicIcon.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2ZmZiI+PHBhdGggZD0iTTMgOXY2aDNsNS41IDVWMTRsLTQuNS00LjVIM3ptMTAgNnYtMTJIMTB2MTJsMy41IDMuNS0yIDEuNS02LTYgNi02IDIgMS41LTMuNSAzLjV6Ii8+PC9zdmc+";
+            } else {
+                bgMusic.play().catch(e => console.log("播放失败:", e));
+                musicIcon.src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2ZmZiI+PHBhdGggZD0iTTMgOXY2aDNsNS41IDVWMTRsLTQuNS00LjVIM1ptMTAtMi41VjNIMTB2MTMuNWwtMi41LTIuNS0yIDIgNSA1IDUtNVY2LjV6Ii8+PC9zdmc+";
+            }
+            musicPlaying = !musicPlaying;
+        });
+
+        
+        // 确保所有链接在点击时平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+        
+        document.getElementById('resetPopup').addEventListener('click', function(e) {
+            e.preventDefault();
+            localStorage.removeItem('dontShowPopu');
+            alert('弹窗设置已重置，下次访问时将再次显示提示');
+        });
+    </script>
+</body>
+</html>

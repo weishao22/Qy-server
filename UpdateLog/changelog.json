@@ -1,0 +1,132 @@
+[
+  {
+    "date": "2025-12-04",
+    "title": "==更新日志===",
+    "content": "[#]支持了 1.21.50—1.21.12x 进入"
+  },
+  {
+    "date": "2025-11-12",
+    "title": "=== 小更新日志 ===",
+    "content": "单个云朵电梯只能上下20格，将两个云朵连接起来可以增加上下检测范围<br><a href=\"https://qycloudreve.s.odn.cc/f/vY1TO/41d77d626afcae1339ff915db5ec9233.jpg\"><img src=\"https://qycloudreve.s.odn.cc/f/vY1TO/41d77d626afcae1339ff915db5ec9233.jpg\" width=\"800\" style=\"height:auto;\"></a>"
+  },
+  {
+    "date": "2025-11-11",
+    "title": "=== DevLog ===",
+    "content": "[+] 新侧边栏样式<br>[+] 云朵电梯<br>[+] 可以骑的北极熊<br>[+] 服务器娘 实体<br>[#] 修复启用灵动视效bug<br>[#] 农夫乐事降频运行<br>[-] 移除了黑格布朗<br><a href=\"https://qycloudreve.s.odn.cc/f/XKZcr/c3785ca067c25284037fda3867bd71bc.jpg\"><img src=\"https://qycloudreve.s.odn.cc/f/XKZcr/c3785ca067c25284037fda3867bd71bc.jpg\" width=\"800\" style=\"height:auto;\"></a>"
+  },
+  {
+    "date": "2025-11-01",
+    "title": "=== DevLog ===",
+    "content": "[+] 重新加入搬运系统卫星地图发表情转义\n[+] 服务器娘接入豆包AI卫星地图发表情转义\n[+] 卫星地图发表情转义卫星地图发表情转义\n[-] 移除收纳袋合成表<br> [#] 修复horror不打人<br> [#] 修复搬运刷物品<br> [#] 修复触屏射击相关<br> [#] 修复菜单性能问题<br> [#] 额外血量不再一次扣光<br> [#] 网页聊天/方块搬运/等信息将记录到日志"
+  },
+  {
+    "date": "2025-10-24",
+    "title": "=== DevLog ===",
+    "content": "[#]组队系统改成了工会\n <a href=\"https://www.minebbs.com/resources/ex-v.3903/\"><img src=\"https://qycloudreve.s.odn.cc/f/L0wua/a8261c44f9422a9def0694eb17dfe166.jpeg\" width=\"900\" style=\"height:auto;\">  </a>"
+  },
+  {
+    "date": "2025-10-18",
+    "title": "=== DevLog ===",
+    "content": "[#] 旋转方块指令在领地内不可用（仅不受信任）\n [#] 修复一些bug"
+  },
+  {
+    "date": "2025-10-11",
+    "title": "=== DevLog ===",
+    "content": "[#] 更新队伍系统\n [#] 更新商店系统\n <img src=\"https://qycloudreve.s.odn.cc/f/2WeFm/822952eb4303d67441327cdd46ac38f0.jpeg\" width=\"600\" style=\"height:auto;\"> "
+  },
+  {
+    "date": "2025-10-10",
+    "title": "=== DevLog ===",
+    "content": "[+] <a href=\"http://qyserver.s.odn.cc/command/\">连锁采集</a>\n [#] 修复小部分性能问题\n [-] 移除了皮克尬的"
+  },
+  {
+    "date": "2025-10-08",
+    "title": "=== DevLog ===",
+    "content": "<s>[#] 现支持1.21.5x-1.21.11x 进服</s>\n [-] 暂时移除红石频率限制\n [-] 移除了Herobrine\n"
+  },
+  {
+    "date": "2025-10-03",
+    "title": "==更新日志==",
+    "content": "[+] 红旗 \n [#] 花环现每秒恢复1理智值 [#] 修复小说阅读器无法正确获取小说问题 <br>   [#] 小说获取渠道更改为 笔趣阁+老版番茄 \n [+] 飞行时长系统已实装\n [-] 完全移除主服后室\n [-] 移除主服后室物品"
+},
+  {
+    "date": "2025-10-02",
+    "title": "==更新日志==",
+    "content": "[+] 新版本中击杀horror不会再掉落刷怪蛋\n [+] /devfunc xpfix 扣除经验修复装备"
+  },
+  {
+    "date": "2025-10-01",
+    "title": "== DevLog ==",
+    "content": "[#] 修复生成蛋修改刷怪笼\n [#] 修复小部分性能问题\n [#] 修复无法恢复理智值\n [@] 修复多个平衡性问题\n [+] 更好看的烟花\n [+] 花环\n [-] 移除了Herobrine\n [#] 修复了搬运方块刷物品问题\n [-] 移除了皮克尬的"
+  },
+  {
+    "date": "2025-09-15",
+    "title": "== DevLog ==",
+    "content": " [+] 公共传送点同步卫星地图\n<br>"
+  },
+  {
+    "date": "2025-09-14",
+    "title": "==新增功能==",
+    "content": "[+] 增加Ai对话功能\n<s>指令示例：/ai 你好</s>"
+  },
+  {
+    "date": "2025-09-05",
+    "title": "==更新日志==",
+    "content": "头部盔甲切换\n 手持物品输入：/helmet"
+  },
+  {
+    "date": "2025-08-26",
+    "title": "==更新日志===",
+    "content": "[#] 修复天气显示不正常的问题\n [+] 网页在线查询增加在线状态信息记录功能"
+  },
+  {
+    "date": "2025-08-24",
+    "title": "==更新日志===",
+    "content": "[+] 当在主世界高度达到1000时传送至末地\n[+] 高度达到-64时传送至下届"
+  },
+  {
+    "date": "2025-08-07",
+    "title": "==更新日志==",
+    "content": "[#] 修复破坏方块时发送破损数据包问题"
+  },
+  {
+    "date": "2025-08-01",
+    "title": "==更新日志===",
+    "content": "表情功能\n现在可以在服务器发emoji表情了\n<a href=\"http://qyserver.s.odn.cc/faq/problem.html?id=009\">支持的表情</a>\n"
+  },
+  {
+    "date": "2025-07-22",
+    "title": "==新增功能==",
+    "content": "[+]横扫之刃\n<br> \n [+]网页地图与网页聊天(<a href=\"http://qyserver.s.odn.cc/faq/problem.html?id=006\">使用方法</a> ）\n[+]视角相机（<a href=\"http://qyserver.s.odn.cc/faq/problem.html?id=005\">使用方法</a> ）\n"
+  },
+  {
+    "date": "2025-07-20",
+    "title": "==更新日志===",
+    "content": "[#]  修复无限方块BUG\n [#] 修复其他已知问题"
+  },
+  {
+    "date": "2025-06-18",
+    "title": "==更新日志===",
+    "content": "[#] 优化服务器运行性能(LeviOptimize)\n[#] 修复开服过久无法下载资源包问题\n[+] 增加强制信任所有皮肤\n[-] 移除了Herobrine\n"
+  },
+  {
+    "date": "2025-06-14",
+    "title": "===更新日志===",
+    "content": "下界高度提升 128 → 255\n <br>"
+  },
+  {
+    "date": "2025-03-23",
+    "title": "==新增功能==",
+    "content": "<s>[+]新装饰物</s>\n<s>[+]更多后室物品\n[+]更多后室层级\n• 如何使用\n→装饰物<已无效>\n手持可用装饰物 潜行+低头\n(仅支持 干草块/仙人掌/蛋糕)  \n→副手移动光源\n手持火把 潜行+长按/右键\n→后室物品\n火盐：仅对玩家造成火焰伤害<已无效>\n圣甲虫：自动攻击部分实体<已无效>\n皇家口粮：饱腹+生命恢复 *255\n</s>"
+  },
+  {
+    "date": "2025-02-27",
+    "title": "==更新日志===",
+    "content": "[+]添加了模组和材质包：\n 现实主义工艺\n 农夫乐事 \n Actions and Stuff \n "
+  },
+  {
+    "date": "2025-02-26",
+    "title": "==更新日志===",
+    "content": "[+]添加了时钟菜单"
+  }
+]
