@@ -1,5 +1,7 @@
 # Qy Server 服务器网站
 
+[点我前往官网](http://qyserver.s.odn.cc/)
+
 ## 第三方资源
 
 使用了以下第三方资源：
