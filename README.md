@@ -25,7 +25,11 @@
   - NPM包: [https://www.npmjs.com/package/minecraft-server-util](https://www.npmjs.com/package/minecraft-server-util)
   - 许可证: MIT License
 
-
+### **规则**
+- **Cubic Wiki** 
+- [https://nitwikit.8aka.cn/](https://nitwikit.8aka.cn/)
+- 
+  服务器引用的规则
  ## 其他说明
  ### 本项目大部分代码由AI辅助生成
 
