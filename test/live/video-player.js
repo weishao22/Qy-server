@@ -12,10 +12,60 @@
 
     // 1. 初始化 Plyr（单码率直播流不提供画质菜单）
     const player = new Plyr(video, {
-      controls: ['play', 'mute', 'volume', 'fullscreen']
+      controls: ['play-large', 'play', 'mute', 'volume', 'pip', 'fullscreen'],
+      i18n: { pip: '画中画（小窗口）' }
     });
 
-    // 2. HLS.js 支持检测
+    // 2. 网页全屏（填满浏览器视口，不进入系统全屏）
+    const wrapper = video.closest('.video-wrapper') || video.parentElement;
+
+    const webFsBtn = document.createElement('button');
+    webFsBtn.type = 'button';
+    webFsBtn.className = 'plyr__control';
+    webFsBtn.setAttribute('aria-label', '网页全屏');
+    webFsBtn.setAttribute('aria-pressed', 'false');
+    webFsBtn.innerHTML =
+      '<svg class="icon--not-pressed" role="presentation" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<rect x="2" y="4" width="20" height="15" rx="2"></rect><path d="M8 21h8"></path></svg>' +
+      '<svg class="icon--pressed" role="presentation" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<rect x="2" y="4" width="20" height="15" rx="2"></rect><path d="M9 19v-4h4"></path></svg>' +
+      '<span class="plyr__tooltip" role="tooltip">网页全屏</span>';
+
+    function isWebFullscreen() {
+      return wrapper.classList.contains('qy-web-fullscreen');
+    }
+
+    function setWebFullscreen(on) {
+      if (on === isWebFullscreen()) return;
+      wrapper.classList.toggle('qy-web-fullscreen', on);
+      document.body.classList.toggle('qy-web-fullscreen-active', on);
+      webFsBtn.classList.toggle('plyr__control--pressed', on);
+      webFsBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      webFsBtn.setAttribute('aria-label', on ? '退出网页全屏' : '网页全屏');
+      const tip = webFsBtn.querySelector('.plyr__tooltip');
+      if (tip) tip.textContent = on ? '退出网页全屏' : '网页全屏';
+    }
+
+    webFsBtn.addEventListener('click', function () {
+      setWebFullscreen(!isWebFullscreen());
+    });
+
+    if (player.elements.controls) {
+      player.elements.controls.appendChild(webFsBtn);
+    }
+
+    // 进入系统全屏时退出网页全屏，避免两种模式叠加
+    player.on('enterfullscreen', function () {
+      setWebFullscreen(false);
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && isWebFullscreen()) {
+        setWebFullscreen(false);
+      }
+    });
+
+    // 3. HLS.js 支持检测
     if (window.Hls && Hls.isSupported()) {
       console.log('✅ HLS.js 已支持，开始加载流...');
 

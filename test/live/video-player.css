@@ -32,6 +32,30 @@ body {
   box-shadow: 0 8px 30px rgba(0,0,0,0.5);
 }
 
+/* 网页全屏：填满浏览器视口 */
+.video-wrapper.qy-web-fullscreen {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 10000000;
+  border-radius: 0;
+  box-shadow: none;
+}
+.video-wrapper.qy-web-fullscreen .plyr,
+.video-wrapper.qy-web-fullscreen .plyr__video-wrapper {
+  height: 100%;
+  width: 100%;
+}
+/* 关闭毛玻璃，避免其成为 fixed 定位的包含块 */
+body.qy-web-fullscreen-active {
+  overflow: hidden;
+}
+body.qy-web-fullscreen-active .container {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 /* 聊天区域容器：设定明确宽高，保证可见 */
 .live-chat-area {
   height: 600px;
