@@ -17,39 +17,7 @@
         <video id="qyVideo" playsinline crossorigin></video>
       </div>
     </div>
-
-    <!-- 修复后的聊天区域 -->
-    <div class="live-chat-area">
-      <iframe
-        id="owncastChat"
-        src="https://ju3io0hz.jp-tk1.rainapp.top/embed/chat/readwrite"
-        title="Owncast Chat"
-        width="100%"
-        height="100%"
-        frameborder="0"
-        allow="microphone; camera"
-        loading="lazy">
-      </iframe>
-    </div>
-
-    <div id="tcomment" class="comments-section"></div>
   </div>
-
-  <!-- 调试脚本：监控聊天加载状态 -->
-  <script>
-    (function() {
-      const chatFrame = document.getElementById('owncastChat');
-      if (chatFrame) {
-        chatFrame.addEventListener('load', function() {
-          console.log('✅ Owncast 聊天窗口已成功加载。');
-        });
-        chatFrame.addEventListener('error', function(e) {
-          console.error('❌ Owncast 聊天窗口加载失败。请检查网络或查看浏览器控制台的“Mixed Content”错误。', e);
-        });
-      }
-    })();
-  </script>
-
   <script src="/lib/all.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.3/dist/hls.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.polyfilled.min.js"></script>

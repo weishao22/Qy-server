@@ -6,15 +6,13 @@
     const video = document.getElementById('qyVideo');
     if (!video) return;
 
-    const liveSrc = "https://ju3io0hz.jp-tk1.rainapp.top/hls/stream.m3u8";
+    const liveSrc = "https://tv.qyserver.top/live/666daf90f2b4.m3u8";
 
     console.log('🎬 初始化播放器，流地址：', liveSrc);
 
-    // 1. 初始化 Plyr
+    // 1. 初始化 Plyr（单码率直播流不提供画质菜单）
     const player = new Plyr(video, {
-      controls: ['play', 'mute', 'volume', 'settings', 'fullscreen'],
-      settings: ['quality'],
-      i18n: { quality: '画质' }
+      controls: ['play', 'mute', 'volume', 'fullscreen']
     });
 
     // 2. HLS.js 支持检测
@@ -35,31 +33,8 @@
 
       // 监听清单解析
       hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
-        console.log('📋 清单解析成功，可用清晰度：', data.levels.map(l => `${l.height}p @ ${l.bitrate/1000}kbps`));
-        
-        const levels = hls.levels;
-        if (levels && levels.length > 0) {
-          const qualities = levels.map(l => l.height);
-          player.config.quality = {
-            default: 0,
-            options: [0, ...qualities],
-            forced: true,
-            onChange: (q) => {
-              if (window.hls) {
-                if (q === 0) {
-                  window.hls.currentLevel = -1;
-                  console.log('🔄 切换到自动画质');
-                } else {
-                  const levelIndex = levels.findIndex(l => l.height === q);
-                  if (levelIndex !== -1) {
-                    window.hls.currentLevel = levelIndex;
-                    console.log(`🔄 切换到画质：${q}p`);
-                  }
-                }
-              }
-            }
-          };
-        }
+        console.log('📋 清单解析成功，可用清晰度：', data.levels.map(l => `${l.height || 'auto'}p @ ${l.bitrate/1000}kbps`));
+
         // 尝试自动播放
         video.play().then(() => {
           console.log('▶️ 自动播放成功');
