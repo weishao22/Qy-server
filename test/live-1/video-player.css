@@ -1,0 +1,131 @@
+/* video-player.css - 直播页面专用样式表 */
+
+/* 全局body背景：使用固定背景图片，居中对齐，覆盖整个视口 */
+body {
+  background: url('https://t.alcy.cc/ycy') no-repeat center center fixed !important;
+  background-size: cover !important;
+}
+
+/* 主容器：透明毛玻璃卡片 */
+.container {
+  max-width: 1200px;
+  margin: 90px auto 40px auto;
+  padding: 30px;
+  background: rgba(20, 20, 20, 0.65);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  display: block;
+}
+
+/* 视频区域 */
+.video-section {
+  margin-bottom: 25px;
+}
+
+/* 视频包裹层 */
+.video-wrapper {
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+}
+
+/* 网页全屏：填满浏览器视口 */
+.video-wrapper.qy-web-fullscreen {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 10000000;
+  border-radius: 0;
+  box-shadow: none;
+}
+.video-wrapper.qy-web-fullscreen .plyr,
+.video-wrapper.qy-web-fullscreen .plyr__video-wrapper {
+  height: 100%;
+  width: 100%;
+}
+/* 关闭毛玻璃，避免其成为 fixed 定位的包含块 */
+body.qy-web-fullscreen-active {
+  overflow: hidden;
+}
+body.qy-web-fullscreen-active .container {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* 聊天区域容器：设定明确宽高，保证可见 */
+.live-chat-area {
+  height: 600px;
+  width: 100%;
+  margin-top: 20px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 聊天iframe：占满父容器 */
+.live-chat-area iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+/* Plyr播放器针对直播流的优化 */
+.plyr--live .plyr__progress__container,
+.plyr--live .plyr__time--duration {
+  display: none !important;
+}
+
+/* 自定义Plyr主题色 */
+.plyr--full-ui {
+  --plyr-color-main: #f8a5c2;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .container {
+    margin: 80px 10px 20px 10px;
+    padding: 15px;
+  }
+  .live-chat-area {
+    height: 400px;
+  }
+}
+/* ---------- Twikoo 评论区深度适配 ---------- */
+.comments-section { 
+  max-width: 100%;
+  margin: 0 auto; 
+  padding: 0; 
+}
+
+/* 强制把 Twikoo 评论的字体改为浅色，避免在深色毛玻璃上看不清 */
+.twikoo, .tk-content, .tk-nick, .tk-action-icon, .tk-time, .tk-comments-title, .tk-comments-count {
+  color: #eaeaea !important;
+}
+
+/* 修改 Twikoo 输入框的背景为半透明，边框为亮色 */
+.tk-input .el-textarea__inner, .tk-input .el-input__inner {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+.tk-input .el-textarea__inner:focus, .tk-input .el-input__inner:focus {
+  border-color: #f8a5c2 !important;
+}
+
+/* ---------- 移动端适配 ---------- */
+@media (max-width:768px) {
+  .container { 
+    margin: 80px 10px 20px 10px; 
+    padding: 15px; 
+  }
+  .video-container { margin: 0 auto 16px auto; } 
+  .back-button { top: 70px; left: 10px; padding: 8px 12px; font-size: 14px; }
+  .controls-overlay { left:8px; right:8px; bottom:8px; padding:8px; }
+  .res-switch button { padding:6px 8px; margin-left:4px; }
+}

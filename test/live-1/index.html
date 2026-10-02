@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>直播播放 - QYServer</title>
+  <link rel="stylesheet" href="/lib/all.css">
+  <link rel="stylesheet" href="video-player.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.css">
+  <script src="/lib/AllComponents.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="video-section">
+      <div class="video-wrapper">
+        <video id="qyVideo" playsinline crossorigin></video>
+      </div>
+    </div>
+    <hr class="divider">
+    <h3><i class="fas fa-comments" style="color: #bababa; margin-right: 10px;"></i>玩家评论</h3>
+    <div id="tcomment" class="comments-section"></div>
+                
+  </div>
+  <script src="/lib/all.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.3/dist/hls.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.polyfilled.min.js"></script>
+  <script src="video-player.js"></script>
+</body>
+</html>
