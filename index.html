@@ -1051,6 +1051,96 @@
             height: 100%;
             object-fit: contain;
         }
+
+        /* ---------- 右下角直播预览小窗（位于音乐图标上方） ---------- */
+        #livePreview {
+            position: fixed;
+            right: 20px;
+            bottom: 86px;
+            width: 240px;
+            max-width: 60vw;
+            z-index: 1000;
+            background: rgba(20, 20, 20, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+            cursor: pointer;
+            animation: livePreviewIn 0.4s ease;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        #livePreview video {
+            display: block;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 16 / 9;
+            object-fit: cover;
+            background: #000;
+        }
+
+        .live-preview__badge {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 8px;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.55);
+            border-radius: 20px;
+            pointer-events: none;
+        }
+
+        .live-preview__dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ff4d4f;
+            animation: livePulse 1.2s ease-in-out infinite;
+        }
+
+        .live-preview__close {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 22px;
+            height: 22px;
+            padding: 0;
+            border: none;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.55);
+            color: #fff;
+            font-size: 14px;
+            line-height: 22px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .live-preview__close:hover {
+            background: rgba(248, 165, 194, 0.9);
+        }
+
+        .live-preview__hint {
+            padding: 8px 10px;
+            color: #fff;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        @keyframes livePreviewIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes livePulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
     </style>
 </head>
 
@@ -1504,6 +1594,113 @@
             }, 50);
 
             update();
+        })();
+    </script>
+
+    <!-- 右下角直播预览：页面完全加载后检测直播源，非 404 则静音自动播放小窗，点击进入直播间 -->
+    <script>
+        (function () {
+            var LIVE_CHANNEL_ID = '666daf90f2b4';
+            var LIVE_STREAM_URL = 'https://tv.qyserver.top/live/' + LIVE_CHANNEL_ID + '.m3u8';
+            var LIVE_PAGE_URL = '/live/?id=' + LIVE_CHANNEL_ID;
+            var HLS_CDN = 'https://cdn.jsdelivr.net/npm/hls.js@1.4.3/dist/hls.min.js';
+
+            var previewEl = null;
+            var hlsInstance = null;
+            var dismissed = false;
+
+            function onFullyLoaded(fn) {
+                if (document.readyState === 'complete') { fn(); }
+                else { window.addEventListener('load', fn, { once: true }); }
+            }
+
+            function loadHls(callback) {
+                if (window.Hls) { callback(); return; }
+                var existing = document.querySelector('script[data-qy-hls]');
+                if (existing) { existing.addEventListener('load', callback); return; }
+                var s = document.createElement('script');
+                s.src = HLS_CDN;
+                s.async = true;
+                s.setAttribute('data-qy-hls', '');
+                s.onload = callback;
+                s.onerror = function () { console.warn('直播预览：hls.js 加载失败'); };
+                document.head.appendChild(s);
+            }
+
+            function buildPreview() {
+                var box = document.createElement('div');
+                box.id = 'livePreview';
+                box.setAttribute('role', 'link');
+                box.setAttribute('title', '点击进入直播间');
+                box.innerHTML =
+                    '<span class="live-preview__badge"><span class="live-preview__dot"></span>正在直播</span>' +
+                    '<button type="button" class="live-preview__close" aria-label="关闭直播预览">\u00d7</button>' +
+                    '<video playsinline muted autoplay></video>' +
+                    '<div class="live-preview__hint">点击进入直播间</div>';
+
+                box.addEventListener('click', function () {
+                    window.location.href = LIVE_PAGE_URL;
+                });
+                box.querySelector('.live-preview__close').addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    dismissed = true;
+                    destroyPreview();
+                });
+                return box;
+            }
+
+            function destroyPreview() {
+                if (hlsInstance) { try { hlsInstance.destroy(); } catch (err) { } hlsInstance = null; }
+                if (previewEl) { previewEl.remove(); previewEl = null; }
+            }
+
+            function tryPlay(video) {
+                var p = video.play();
+                if (p && p.catch) { p.catch(function () { /* 静音自动播放被拦截时忽略 */ }); }
+            }
+
+            function startPreview() {
+                if (dismissed || previewEl) return;
+                previewEl = buildPreview();
+                document.body.appendChild(previewEl);
+
+                var video = previewEl.querySelector('video');
+                video.muted = true;
+
+                loadHls(function () {
+                    if (!window.Hls || !previewEl) return;
+                    if (Hls.isSupported()) {
+                        hlsInstance = new Hls({ liveSyncDurationCount: 3, lowLatencyMode: true, enableWorker: true });
+                        hlsInstance.loadSource(LIVE_STREAM_URL);
+                        hlsInstance.attachMedia(video);
+                        hlsInstance.on(Hls.Events.MANIFEST_PARSED, function () { tryPlay(video); });
+                        hlsInstance.on(Hls.Events.ERROR, function (e, data) {
+                            if (data && data.fatal) { destroyPreview(); }
+                        });
+                    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                        video.src = LIVE_STREAM_URL;
+                        tryPlay(video);
+                    } else {
+                        destroyPreview();
+                    }
+                });
+
+                video.addEventListener('error', destroyPreview);
+            }
+
+            onFullyLoaded(function () {
+                fetch(LIVE_STREAM_URL, { method: 'GET', cache: 'no-store' })
+                    .then(function (res) {
+                        if (!res.ok) throw new Error('直播源不可用（HTTP ' + res.status + '）');
+                        return res.text();
+                    })
+                    .then(function (text) {
+                        if ((text || '').indexOf('#EXTM3U') !== -1) { startPreview(); }
+                    })
+                    .catch(function (err) {
+                        console.log('直播预览：未检测到直播（' + err.message + '）');
+                    });
+            });
         })();
     </script>
 </body>
