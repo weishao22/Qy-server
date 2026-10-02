@@ -75,10 +75,10 @@ body.qy-web-fullscreen-active .container {
   display: block;
 }
 
-/* Plyr播放器针对直播流的优化 */
+/* 直播流同样显示进度条与时长 */
 .plyr--live .plyr__progress__container,
 .plyr--live .plyr__time--duration {
-  display: none !important;
+  display: block !important;
 }
 
 /* 自定义Plyr主题色 */

@@ -42,9 +42,9 @@
 
     console.log('🎬 初始化播放器，流地址：', liveSrc);
 
-    // 1. 初始化 Plyr（单码率直播流不提供画质菜单）
+    // 1. 初始化 Plyr（单码率直播流不提供画质菜单，保留进度条）
     const player = new Plyr(video, {
-      controls: ['play-large', 'play', 'mute', 'volume', 'pip', 'fullscreen'],
+      controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'pip', 'fullscreen'],
       i18n: { pip: '画中画（小窗口）' }
     });
 
