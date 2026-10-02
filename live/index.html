@@ -26,5 +26,65 @@
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.3/dist/hls.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.polyfilled.min.js"></script>
   <script src="video-player.js"></script>
+
+  <!-- 评论区：按直播频道隔离 Twikoo 评论，避免所有频道共用同一评论路径 -->
+  <script>
+    window.__twikoo_custom_init = true;
+    (function () {
+      var DEFAULT_STREAM_ID = '114514';
+
+      function channelKey(value) {
+        if (/^https?:\/\//i.test(value)) {
+          try {
+            var u = new URL(value);
+            var m = u.pathname.match(/([^/]+?)(?:\.m3u8)?$/i);
+            value = m ? m[1] : u.pathname;
+          } catch (e) { /* 无法解析时沿用原值 */ }
+        }
+        return String(value).replace(/[^a-zA-Z0-9_-]/g, '_');
+      }
+
+      function getLiveId() {
+        var value = '';
+        try {
+          var params = new URLSearchParams(window.location.search);
+          value = params.get('') || params.get('id') || '';
+          if (!value || !value.trim()) {
+            params.forEach(function (v) {
+              if (!value && v && v.trim()) value = v;
+            });
+          }
+        } catch (e) { /* 解析异常时使用默认频道 */ }
+        value = value && value.trim() ? value.trim() : DEFAULT_STREAM_ID;
+        return channelKey(value);
+      }
+
+      function initTwikoo() {
+        if (typeof twikoo === 'undefined') return;
+        twikoo.init({
+          el: '#tcomment',
+          envId: 'https://plapi.qyserver.cc',
+          lang: 'zh-CN',
+          path: '/live/' + getLiveId(),
+          pageview: true
+        });
+      }
+
+      function boot() {
+        if (typeof twikoo !== 'undefined') { initTwikoo(); return; }
+        var script = document.createElement('script');
+        script.src = 'https://s4.zstatic.net/npm/twikoo@1.7.11/dist/twikoo.min.js';
+        script.onload = initTwikoo;
+        script.onerror = function () { console.error('Twikoo 脚本加载失败'); };
+        document.head.appendChild(script);
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot);
+      } else {
+        boot();
+      }
+    })();
+  </script>
 </body>
 </html>
