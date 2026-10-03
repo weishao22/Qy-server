@@ -1065,10 +1065,17 @@
             border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
-            cursor: pointer;
             animation: livePreviewIn 0.4s ease;
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
+        }
+
+        /* 导航区域（不含关闭按钮） */
+        .live-preview__link {
+            display: block;
+            color: inherit;
+            text-decoration: none;
+            cursor: pointer;
         }
 
         #livePreview video {
@@ -1108,6 +1115,7 @@
             position: absolute;
             top: 6px;
             right: 6px;
+            z-index: 2;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1652,22 +1660,49 @@
             function buildPreview() {
                 var box = document.createElement('div');
                 box.id = 'livePreview';
-                box.setAttribute('role', 'link');
-                box.setAttribute('title', '点击进入直播间');
-                box.innerHTML =
+
+                // 导航区域用真实链接，且不包含关闭按钮，避免点关闭时触发跳转
+                var link = document.createElement('a');
+                link.className = 'live-preview__link';
+                link.href = LIVE_PAGE_URL;
+                link.setAttribute('title', '点击进入直播间');
+                link.innerHTML =
                     '<span class="live-preview__badge"><span class="live-preview__dot"></span>正在直播</span>' +
-                    '<button type="button" class="live-preview__close" aria-label="关闭直播预览">\u00d7</button>' +
                     '<video playsinline muted autoplay></video>' +
                     '<div class="live-preview__hint">点击进入直播间</div>';
 
-                box.addEventListener('click', function () {
-                    window.location.href = LIVE_PAGE_URL;
-                });
-                box.querySelector('.live-preview__close').addEventListener('click', function (e) {
-                    e.stopPropagation();
+                var closeBtn = document.createElement('button');
+                closeBtn.type = 'button';
+                closeBtn.className = 'live-preview__close';
+                closeBtn.setAttribute('aria-label', '关闭直播预览');
+                closeBtn.textContent = '\u00d7';
+
+                var closeInteracted = false;
+
+                function closePreview(e) {
+                    if (e) { e.preventDefault(); e.stopPropagation(); }
+                    closeInteracted = true;
+                    if (dismissed) return;
                     dismissed = true;
                     destroyPreview();
+                }
+
+                // 触摸/指针一落在关闭按钮上就标记，阻止后续可能被重定向到链接的点击
+                closeBtn.addEventListener('pointerdown', function (e) {
+                    closeInteracted = true;
+                    e.stopPropagation();
                 });
+                closeBtn.addEventListener('touchstart', function () {
+                    closeInteracted = true;
+                }, { passive: true });
+                closeBtn.addEventListener('click', closePreview);
+
+                link.addEventListener('click', function (e) {
+                    if (closeInteracted) { e.preventDefault(); }
+                });
+
+                box.appendChild(link);
+                box.appendChild(closeBtn);
                 return box;
             }
 
