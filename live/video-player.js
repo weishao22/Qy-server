@@ -8,6 +8,7 @@
 
     // 直播源：默认频道，可通过网址参数指定
     // 例：/live/?=666daf90f2b4 或 /live/?id=666daf90f2b4 或 /live/?src=https://...m3u8
+    const DEFAULT_STREAM_ID = '666daf90f2b4';
     const LIVE_BASE = 'https://tv.qyserver.top/live/';
 
     function getStreamParam() {
@@ -101,59 +102,107 @@
     if (window.Hls && Hls.isSupported()) {
       console.log('✅ HLS.js 已支持，开始加载流...');
 
-      const hls = new Hls({
-        liveSyncDurationCount: 3,
-        autoStartLoad: true,
-        debug: false,            // 生产环境建议关闭详细调试
+      // 直播优化：进入后直接对齐“直播边缘”，只拉取最新分片，避免从头加载已过期的旧数据
+      const hlsOptions = {
+        autoStartLoad: false,             // 不自动从默认位置加载，改为解析完清单后手动从直播边缘加载
+        startPosition: -1,                // -1：直播时从最新位置开始
+        liveSyncDurationCount: 1,         // 只保留距直播边缘 1 个分片，尽快追上最新画面
+        liveMaxLatencyDurationCount: 3,   // 落后超过 3 个分片时自动快进
+        maxLiveSyncPlaybackRate: 1.5,     // 落后时加速播放以追赶直播
+        backBufferLength: 0,              // 不保留回看缓冲
+        lowLatencyMode: true,
         enableWorker: true,
-        lowLatencyMode: true,     // 低延迟模式（适合直播）
-      });
+        debug: false,
+      };
 
-      window.hls = hls;
-      hls.loadSource(liveSrc);
-      hls.attachMedia(video);
+      const MAX_FRESH_RETRIES = 3;
+      let hls = null;
+      let retries = 0;
+      let snapped = false;
 
-      // 监听清单解析
-      hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
-        console.log('📋 清单解析成功，可用清晰度：', data.levels.map(l => `${l.height || 'auto'}p @ ${l.bitrate/1000}kbps`));
+      // 给清单地址加时间戳，强制拉到最新清单，避免命中浏览器/CDN 的过期缓存
+      function withCacheBust(url) {
+        const sep = url.indexOf('?') === -1 ? '?' : '&';
+        return url + sep + '_live=' + Date.now();
+      }
 
-        // 尝试自动播放
+      // 首个清单就绪后，把播放位置对齐到最新的直播位置
+      function snapToLive() {
+        if (snapped) return;
+        const pos = hls.liveSyncPosition;
+        if (typeof pos === 'number' && isFinite(pos) && pos > 0) {
+          snapped = true;
+          if (Math.abs(video.currentTime - pos) > 1) {
+            try { video.currentTime = pos; } catch (e) { }
+          }
+        }
+      }
+
+      function startPlayback() {
         video.play().then(() => {
           console.log('▶️ 自动播放成功');
         }).catch(e => {
           console.warn('⏸️ 自动播放被浏览器阻止，请手动点击播放按钮', e);
         });
-      });
+      }
 
-      // 详细错误日志
-      hls.on(Hls.Events.ERROR, function (event, data) {
-        console.error('❌ HLS 错误：', data.type, data.details, data.fatal ? '[致命]' : '[可恢复]');
-
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              console.log('🔄 尝试重新加载流...');
-              hls.startLoad();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              console.log('🔄 尝试恢复媒体错误...');
-              hls.recoverMediaError();
-              break;
-            default:
-              console.error('💥 无法恢复的致命错误，请检查流地址或服务器状态');
-              break;
-          }
+      // 网络错误时，很可能是拉到了已过期的旧分片：直接把清单换成最新的重新加载
+      function reloadFresh() {
+        if (retries >= MAX_FRESH_RETRIES) {
+          console.error('💥 多次重试仍无法播放，请检查流地址或服务器状态');
+          return;
         }
-      });
+        retries++;
+        console.log(`🔄 直播数据可能已过期，重新拉取最新数据（第 ${retries} 次）...`);
+        try { hls.destroy(); } catch (e) { }
+        loadHls(withCacheBust(liveSrc));
+      }
 
-      // 监听片段加载失败（网络细节）
-      hls.on(Hls.Events.FRAG_LOAD_EMERGENCY_ABORTED, () => {
-        console.warn('⚠️ 片段加载紧急中止，可能存在网络问题');
-      });
+      function loadHls(url) {
+        snapped = false;
+        hls = new Hls(hlsOptions);
+        window.hls = hls;
+        hls.attachMedia(video);
+        hls.loadSource(url);
+
+        hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
+          console.log('📋 清单解析成功，可用清晰度：', data.levels.map(l => `${l.height || 'auto'}p @ ${l.bitrate/1000}kbps`));
+          // 从直播边缘（最新位置）开始加载，而不是从头加载
+          hls.startLoad(-1);
+          startPlayback();
+        });
+
+        // 分片清单载入后，对齐到最新位置
+        hls.on(Hls.Events.LEVEL_LOADED, snapToLive);
+
+        // 详细错误日志
+        hls.on(Hls.Events.ERROR, function (event, data) {
+          console.error('❌ HLS 错误：', data.type, data.details, data.fatal ? '[致命]' : '[可恢复]');
+          if (!data.fatal) return;
+
+          if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            console.log('🔄 尝试恢复媒体错误...');
+            hls.recoverMediaError();
+            return;
+          }
+
+          // 网络错误：重新拉取最新数据
+          reloadFresh();
+        });
+
+        // 监听片段加载失败（网络细节）
+        hls.on(Hls.Events.FRAG_LOAD_EMERGENCY_ABORTED, () => {
+          console.warn('⚠️ 片段加载紧急中止，可能存在网络问题');
+        });
+      }
+
+      loadHls(withCacheBust(liveSrc));
 
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       console.log('🍎 使用原生 HLS 播放（Safari）');
-      video.src = liveSrc;
+      // 带时间戳强制拉取最新清单，原生播放器会自动从直播边缘开始
+      const nativeSep = liveSrc.indexOf('?') === -1 ? '?' : '&';
+      video.src = liveSrc + nativeSep + '_live=' + Date.now();
       video.play().catch(e => console.warn('自动播放被阻止'));
     } else {
       console.error('❌ 当前浏览器不支持 HLS 播放，请升级浏览器或使用 Safari/Chrome');
