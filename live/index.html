@@ -50,7 +50,8 @@
           var params = new URLSearchParams(window.location.search);
           value = params.get('') || params.get('id') || '';
           if (!value || !value.trim()) {
-            params.forEach(function (v) {
+            params.forEach(function (v, k) {
+              if (k === 'node') return;
               if (!value && v && v.trim()) value = v;
             });
           }

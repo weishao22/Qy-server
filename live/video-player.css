@@ -81,6 +81,140 @@ body.qy-web-fullscreen-active .container {
   display: block !important;
 }
 
+/* 节点切换按钮：图标 + 当前节点名 */
+.plyr__control.qy-node-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: auto;
+  padding: 0 8px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.qy-node-btn .qy-node-label {
+  line-height: 1;
+}
+
+/* 节点 / 音量的弹出式子容器 */
+.qy-popover {
+  position: absolute;
+  z-index: 10;
+  min-width: 150px;
+  padding: 10px;
+  color: #fff;
+  background: rgba(18, 18, 18, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.qy-popover[hidden] {
+  display: none !important;
+}
+.qy-popover__title {
+  margin-bottom: 8px;
+  color: #b9b9b9;
+  font-size: 12px;
+  line-height: 1.2;
+}
+.qy-node-menu {
+  min-width: 210px;
+}
+.qy-node-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.qy-node-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 7px 9px;
+  color: #f2f2f2;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+}
+.qy-node-item:hover,
+.qy-node-item:focus-visible {
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+}
+.qy-node-item.is-active {
+  color: #f8a5c2;
+  background: rgba(248, 165, 194, 0.18);
+}
+.qy-node-item.is-active::after {
+  content: '✓';
+  font-size: 13px;
+}
+.qy-node-item__host {
+  color: #8f8f8f;
+  font-size: 11px;
+}
+.qy-node-item.is-active .qy-node-item__host {
+  color: #d99ab2;
+}
+.qy-volume-panel {
+  min-width: 200px;
+}
+.qy-popover__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.qy-popover__head .qy-popover__title {
+  margin-bottom: 0;
+}
+.qy-mute-toggle {
+  padding: 2px 8px;
+  color: #f8a5c2;
+  font-size: 11px;
+  cursor: pointer;
+  background: rgba(248, 165, 194, 0.12);
+  border: 1px solid rgba(248, 165, 194, 0.35);
+  border-radius: 999px;
+}
+.qy-mute-toggle:hover,
+.qy-mute-toggle:focus-visible {
+  background: rgba(248, 165, 194, 0.24);
+  outline: none;
+}
+.qy-volume-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.qy-volume-slider {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.qy-volume-value {
+  min-width: 38px;
+  color: #ddd;
+  font-size: 12px;
+  text-align: right;
+}
+.qy-volume-btn .qy-vol-icon--muted {
+  display: none;
+}
+.qy-volume-btn.is-muted .qy-vol-icon--on {
+  display: none;
+}
+.qy-volume-btn.is-muted .qy-vol-icon--muted {
+  display: block;
+}
+
 /* 自定义Plyr主题色 */
 .plyr--full-ui {
   --plyr-color-main: #f8a5c2;
