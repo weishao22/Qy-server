@@ -13,8 +13,9 @@
     // 直播节点：支持播放器内手动切换，当前节点网络异常时自动切换到备用节点
     // 也可通过网址参数指定：/live/?id=xxx&node=2
     const LIVE_NODES = [
-      { name: '节点 1', host: 'tv.qyserver.top', base: 'https://tv.qyserver.top/live/' },
-      { name: '节点 2', host: 'live-aliyun.qyserver.top', base: 'https://live-aliyun.qyserver.top/live/' }
+      { name: '主节点', base: 'https://tv.qyserver.top/live/' },
+      { name: '备用1', base: 'https://live-aliyun.qyserver.top/live/' },
+      { name: '备2', base: 'https://live-cf.qyserver.top/live/' }
     ];
 
     function getStreamParam() {
@@ -39,6 +40,7 @@
       } catch (e) { /* 参数解析异常时使用默认节点 */ }
       if (!raw) return 0;
       if (raw === 'aliyun' || raw === 'live-aliyun') return 1;
+      if (raw === 'cf' || raw === 'live-cf') return 2;
       if (raw === 'tv' || raw === 'main') return 0;
       const index = parseInt(raw, 10);
       if (index >= 1 && index <= LIVE_NODES.length) return index - 1;
@@ -84,7 +86,8 @@
     // 1. 初始化 Plyr（单码率直播流不提供画质菜单，保留进度条；音量/静音改为弹层控制）
     const player = new Plyr(video, {
       controls: ['play-large', 'play', 'progress', 'current-time', 'pip', 'fullscreen'],
-      i18n: { pip: '画中画（小窗口）' }
+      i18n: { pip: '画中画（小窗口）' },
+      tooltips: { seek: false }
     });
 
     // 2. 网页全屏（填满浏览器视口，不进入系统全屏）
@@ -195,7 +198,7 @@
       '<svg role="presentation" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
       '<circle cx="12" cy="12" r="9"></circle><path d="M3 12h18"></path>' +
       '<path d="M12 3c2.5 2.4 4 5.6 4 9s-1.5 6.6-4 9c-2.5-2.4-4-5.6-4-9s1.5-6.6 4-9z"></path></svg>' +
-      '<span class="qy-node-label">节点 1</span>' +
+      '<span class="qy-node-label">主节点</span>' +
       '<span class="plyr__tooltip" role="tooltip">选择节点</span>';
 
     const nodePop = createPopover('qy-node-menu');
@@ -222,12 +225,8 @@
         const name = document.createElement('span');
         name.className = 'qy-node-item__name';
         name.textContent = node.name;
-        const host = document.createElement('span');
-        host.className = 'qy-node-item__host';
-        host.textContent = node.host;
 
         item.appendChild(name);
-        item.appendChild(host);
         item.addEventListener('click', function () {
           closePopover();
           if (active) return;
@@ -343,12 +342,117 @@
       const pipControl = player.elements.controls.querySelector('[data-plyr="pip"]');
       if (pipControl) {
         pipControl.insertAdjacentElement('beforebegin', volumeBtn);
+        volumeBtn.insertAdjacentElement('afterend', nodeBtn);
       } else {
         player.elements.controls.appendChild(volumeBtn);
+        player.elements.controls.appendChild(nodeBtn);
       }
-      player.elements.controls.appendChild(nodeBtn);
       player.elements.controls.appendChild(webFsBtn);
     }
+
+    // 6. 进度条只允许回拖最近 5 分钟
+    const MAX_REWIND_SECONDS = 5 * 60;
+    const seekInput = player.elements.controls
+      ? player.elements.controls.querySelector('input[data-plyr="seek"]')
+      : null;
+
+    function getLiveSeekWindow() {
+      const seekable = video.seekable;
+      if (!seekable || !seekable.length) return null;
+      const last = seekable.length - 1;
+      const start = seekable.start(last);
+      const end = seekable.end(last);
+      if (!isFinite(start) || !isFinite(end) || end <= start) return null;
+      return {
+        start: Math.max(start, end - MAX_REWIND_SECONDS),
+        end: end
+      };
+    }
+
+    function getSeekPercentBounds() {
+      const win = getLiveSeekWindow();
+      const duration = player.duration;
+      if (!win || !isFinite(duration) || duration <= 0) return null;
+      const min = Math.max(0, Math.min(100, (win.start / duration) * 100));
+      const max = Math.max(min, Math.min(100, (win.end / duration) * 100));
+      return { min: min, max: max };
+    }
+
+    function updateSeekFill() {
+      if (!seekInput) return;
+      const min = Number(seekInput.min) || 0;
+      const max = Number(seekInput.max) || 100;
+      const value = Math.min(Math.max(Number(seekInput.value) || 0, min), max);
+      const span = max - min;
+      const percent = span > 0 ? ((value - min) / span) * 100 : 0;
+      seekInput.style.setProperty('--value', percent.toFixed(2) + '%');
+    }
+
+    function updateSeekBounds() {
+      if (!seekInput) return;
+      const bounds = getSeekPercentBounds();
+      if (!bounds) return;
+      // 进度条的 min/max 就是“最近 5 分钟”窗口的起止位置
+      seekInput.min = bounds.min.toFixed(4);
+      seekInput.max = bounds.max.toFixed(4);
+      seekInput.setAttribute('aria-valuemin', bounds.min.toFixed(2));
+      seekInput.setAttribute('aria-valuemax', bounds.max.toFixed(2));
+      updateSeekFill();
+    }
+
+    function handleSeekInput(e) {
+      if (e.target !== seekInput) return;
+      const win = getLiveSeekWindow();
+      const duration = player.duration;
+      if (!win || !isFinite(duration) || duration <= 0) return;
+
+      const value = Number(seekInput.value);
+      if (!isFinite(value)) return;
+
+      // 输入值仍然是整条时间轴上的百分比，这里自行换算成播放时间，
+      // 并阻止 Plyr 按 max=100 的默认逻辑处理自定义进度条范围
+      e.stopPropagation();
+      seekInput.removeAttribute('seek-value');
+
+      const time = Math.min(Math.max((value / 100) * duration, win.start), win.end);
+      if (Math.abs(video.currentTime - time) > 0.05) {
+        video.currentTime = time;
+      }
+      window.setTimeout(updateSeekFill, 0);
+    }
+
+    function clampCurrentTimeToWindow() {
+      const win = getLiveSeekWindow();
+      if (!win) return;
+      const time = video.currentTime;
+      if (!isFinite(time)) return;
+      if (time < win.start - 1) {
+        video.currentTime = win.start;
+      } else if (time > win.end + 1) {
+        video.currentTime = Math.max(win.start, win.end - 0.5);
+      }
+    }
+
+    if (seekInput) {
+      // capture 阶段接管进度条拖动，避免 Plyr 的自定义范围换算错误
+      player.elements.controls.addEventListener('input', handleSeekInput, true);
+      player.elements.controls.addEventListener('change', handleSeekInput, true);
+
+      video.addEventListener('timeupdate', updateSeekBounds);
+      video.addEventListener('progress', updateSeekBounds);
+      video.addEventListener('durationchange', updateSeekBounds);
+      video.addEventListener('seeked', updateSeekBounds);
+      // 直播窗口会持续前移，定时同步可拖动范围
+      window.setInterval(updateSeekBounds, 1000);
+    }
+
+    video.addEventListener('seeking', clampCurrentTimeToWindow);
+    video.addEventListener('play', function () {
+      // 初始加载时 currentTime 可能还没定位到直播边缘，避免过早纠正
+      if (video.readyState >= 2 && video.currentTime > 0) {
+        clampCurrentTimeToWindow();
+      }
+    });
 
     // 进入系统全屏时退出网页全屏，避免两种模式叠加
     player.on('enterfullscreen', function () {
@@ -376,10 +480,10 @@
       const hlsOptions = {
         autoStartLoad: false,             // 不自动从默认位置加载，改为解析完清单后手动从直播边缘加载
         startPosition: -1,                // -1：直播时从最新位置开始
-        liveSyncDurationCount: 1,         // 只保留距直播边缘 1 个分片，尽快追上最新画面
-        liveMaxLatencyDurationCount: 3,   // 落后超过 3 个分片时自动快进
-        maxLiveSyncPlaybackRate: 1.5,     // 落后时加速播放以追赶直播
-        backBufferLength: 0,              // 不保留回看缓冲
+        liveSyncDuration: 6,              // 目标延迟约 6 秒，进入后尽快追上最新画面
+        liveMaxLatencyDuration: 310,      // 落后超过约 5 分钟才强制回到直播边缘
+        maxLiveSyncPlaybackRate: 1.5,     // 小幅落后时加速播放以追赶直播
+        backBufferLength: 300,            // 保留最近 5 分钟缓冲，支持回拖
         lowLatencyMode: true,
         enableWorker: true,
         debug: false,
@@ -389,7 +493,7 @@
       let hls = null;
       let retries = 0;
       let snapped = false;
-      let autoFailoverUsed = false;
+      let autoFailoverCount = 0;
 
       // 首个清单就绪后，把播放位置对齐到最新的直播位置
       function snapToLive() {
@@ -414,9 +518,9 @@
       // 网络错误时，很可能是拉到了已过期的旧分片：直接把清单换成最新的重新加载
       function reloadFresh() {
         if (retries >= MAX_FRESH_RETRIES) {
-          // 当前节点多次失败：自动切换到备用节点，避免直播完全中断
-          if (!autoFailoverUsed && LIVE_NODES.length > 1) {
-            autoFailoverUsed = true;
+          // 当前节点多次失败：依次自动尝试其余节点
+          if (autoFailoverCount < LIVE_NODES.length - 1) {
+            autoFailoverCount++;
             const fallbackIndex = useCustomSrc ? 0 : (nodeIndex + 1) % LIVE_NODES.length;
             const currentName = useCustomSrc ? '自定义地址' : LIVE_NODES[nodeIndex].name;
             console.warn('⚠️ ' + currentName + ' 无法播放，自动切换到' + LIVE_NODES[fallbackIndex].name + '...');
@@ -438,7 +542,7 @@
         useCustomSrc = false;
         liveSrc = buildNodeSrc(nodeIndex);
         retries = 0;
-        if (!isAuto) autoFailoverUsed = false;
+        if (!isAuto) autoFailoverCount = 0;
         updateNodeButton();
         console.log('🔀 切换到' + LIVE_NODES[nodeIndex].name + '：', liveSrc);
         try { hls.destroy(); } catch (e) { }
@@ -490,7 +594,7 @@
 
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       console.log('🍎 使用原生 HLS 播放（Safari）');
-      let nativeAutoSwitched = false;
+      let nativeFailoverCount = 0;
 
       function playNative() {
         // 带时间戳强制拉取最新清单，原生播放器会自动从直播边缘开始
@@ -503,16 +607,16 @@
         nodeIndex = index;
         useCustomSrc = false;
         liveSrc = buildNodeSrc(nodeIndex);
-        if (!isAuto) nativeAutoSwitched = false;
+        if (!isAuto) nativeFailoverCount = 0;
         updateNodeButton();
         console.log('🔀 切换到' + LIVE_NODES[nodeIndex].name + '：', liveSrc);
         playNative();
       };
 
-      // 原生播放失败时自动切换一次备用节点
+      // 原生播放失败时依次自动尝试其余节点
       video.addEventListener('error', function () {
-        if (nativeAutoSwitched || LIVE_NODES.length < 2) return;
-        nativeAutoSwitched = true;
+        if (nativeFailoverCount >= LIVE_NODES.length - 1) return;
+        nativeFailoverCount++;
         const fallbackIndex = useCustomSrc ? 0 : (nodeIndex + 1) % LIVE_NODES.length;
         const currentName = useCustomSrc ? '自定义地址' : LIVE_NODES[nodeIndex].name;
         console.warn('⚠️ ' + currentName + ' 无法播放，自动切换到' + LIVE_NODES[fallbackIndex].name + '...');

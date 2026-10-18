@@ -81,6 +81,11 @@ body.qy-web-fullscreen-active .container {
   display: block !important;
 }
 
+/* 进度条已改为只展示最近 5 分钟，隐藏按完整时长计算的缓冲区 */
+.plyr--live .plyr__progress__buffer {
+  display: none !important;
+}
+
 /* 节点切换按钮：图标 + 当前节点名 */
 .plyr__control.qy-node-btn {
   display: inline-flex;
@@ -119,7 +124,7 @@ body.qy-web-fullscreen-active .container {
   line-height: 1.2;
 }
 .qy-node-menu {
-  min-width: 210px;
+  min-width: 150px;
 }
 .qy-node-list {
   display: flex;
@@ -153,13 +158,6 @@ body.qy-web-fullscreen-active .container {
 .qy-node-item.is-active::after {
   content: '✓';
   font-size: 13px;
-}
-.qy-node-item__host {
-  color: #8f8f8f;
-  font-size: 11px;
-}
-.qy-node-item.is-active .qy-node-item__host {
-  color: #d99ab2;
 }
 .qy-volume-panel {
   min-width: 200px;
