@@ -20,7 +20,7 @@ npm install
 npm start
 ```
 
-默认监听 `0.0.0.0:3002`，WebSocket 地址为 `ws://服务器:3002/ws`，健康检查为 `GET /health`。
+默认监听 `0.0.0.0:3002`，WebSocket 地址为 `ws://服务器:3002/ws`，健康检查为 `GET /health`（别名 `GET /api/danmaku/health`）。需要 Node.js 18 及以上版本。
 
 ## 环境变量
 
@@ -59,7 +59,7 @@ npm start
 { "type": "error", "message": "弹幕包含违禁词，请修改后重试" }
 ```
 
-修改配置文件后需要重启服务，也可以通过 `BANNED_WORDS` 环境变量临时追加。健康检查 `GET /health` 会返回当前加载的违禁词数量。
+修改配置文件后需要重启服务，也可以通过 `BANNED_WORDS` 环境变量临时追加。健康检查 `GET /health` 或 `GET /api/danmaku/health` 会返回当前加载的违禁词数量。
 
 ## 前端连接地址
 
@@ -70,7 +70,7 @@ npm start
 - 可在加载 `danmaku.js` 之前设置 `window.LIVE_DANMAKU_WS` 覆盖，例如：
 
 ```html
-<script>window.LIVE_DANMAKU_WS = 'wss://danmaku.qyserver.top/ws';</script>
+<script>window.LIVE_DANMAKU_WS = 'wss://your-domain.com/danmaku/ws';</script>
 ```
 
 ## Nginx 反向代理

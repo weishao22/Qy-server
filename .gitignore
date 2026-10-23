@@ -2,5 +2,8 @@
 **/*.env
 **/.env.*
 /server/*
+!/server/Status/
 !/server/Danmaku/
+/server/Status/status-history.json
+/server/Status/status-history.json.tmp
 /.kilo

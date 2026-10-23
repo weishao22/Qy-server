@@ -1,4 +1,15 @@
 {
+  "name": "qy-mc-status",
+  "version": "1.0.0",
+  "private": true,
+  "description": "QYServer 基岩版服务器状态与历史记录服务",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.2.1",
