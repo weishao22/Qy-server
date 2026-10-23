@@ -75,15 +75,12 @@ body.qy-web-fullscreen-active .container {
   display: block;
 }
 
-/* 直播流同样显示进度条与时长 */
-.plyr--live .plyr__progress__container,
+/* 直播模式关闭进度条，保留时长显示 */
+.plyr--live .plyr__progress__container {
+  display: none !important;
+}
 .plyr--live .plyr__time--duration {
   display: block !important;
-}
-
-/* 进度条已改为只展示最近 5 分钟，隐藏按完整时长计算的缓冲区 */
-.plyr--live .plyr__progress__buffer {
-  display: none !important;
 }
 
 /* 节点切换按钮：图标 + 当前节点名 */

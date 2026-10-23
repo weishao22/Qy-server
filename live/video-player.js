@@ -83,9 +83,8 @@
 
     // 1. 初始化 Plyr（单码率直播流不提供画质菜单，保留进度条；音量/静音改为弹层控制）
     const player = new Plyr(video, {
-      controls: ['play-large', 'play', 'progress', 'current-time', 'pip', 'fullscreen'],
-      i18n: { pip: '画中画（小窗口）' },
-      tooltips: { seek: false }
+      controls: ['play-large', 'play', 'current-time', 'pip', 'fullscreen'],
+      i18n: { pip: '画中画（小窗口）' }
     });
 
     // 2. 网页全屏（填满浏览器视口，不进入系统全屏）
@@ -348,110 +347,6 @@
       player.elements.controls.appendChild(webFsBtn);
     }
 
-    // 6. 进度条只允许回拖最近 5 分钟
-    const MAX_REWIND_SECONDS = 5 * 60;
-    const seekInput = player.elements.controls
-      ? player.elements.controls.querySelector('input[data-plyr="seek"]')
-      : null;
-
-    function getLiveSeekWindow() {
-      const seekable = video.seekable;
-      if (!seekable || !seekable.length) return null;
-      const last = seekable.length - 1;
-      const start = seekable.start(last);
-      const end = seekable.end(last);
-      if (!isFinite(start) || !isFinite(end) || end <= start) return null;
-      return {
-        start: Math.max(start, end - MAX_REWIND_SECONDS),
-        end: end
-      };
-    }
-
-    function getSeekPercentBounds() {
-      const win = getLiveSeekWindow();
-      const duration = player.duration;
-      if (!win || !isFinite(duration) || duration <= 0) return null;
-      const min = Math.max(0, Math.min(100, (win.start / duration) * 100));
-      const max = Math.max(min, Math.min(100, (win.end / duration) * 100));
-      return { min: min, max: max };
-    }
-
-    function updateSeekFill() {
-      if (!seekInput) return;
-      const min = Number(seekInput.min) || 0;
-      const max = Number(seekInput.max) || 100;
-      const value = Math.min(Math.max(Number(seekInput.value) || 0, min), max);
-      const span = max - min;
-      const percent = span > 0 ? ((value - min) / span) * 100 : 0;
-      seekInput.style.setProperty('--value', percent.toFixed(2) + '%');
-    }
-
-    function updateSeekBounds() {
-      if (!seekInput) return;
-      const bounds = getSeekPercentBounds();
-      if (!bounds) return;
-      // 进度条的 min/max 就是“最近 5 分钟”窗口的起止位置
-      seekInput.min = bounds.min.toFixed(4);
-      seekInput.max = bounds.max.toFixed(4);
-      seekInput.setAttribute('aria-valuemin', bounds.min.toFixed(2));
-      seekInput.setAttribute('aria-valuemax', bounds.max.toFixed(2));
-      updateSeekFill();
-    }
-
-    function handleSeekInput(e) {
-      if (e.target !== seekInput) return;
-      const win = getLiveSeekWindow();
-      const duration = player.duration;
-      if (!win || !isFinite(duration) || duration <= 0) return;
-
-      const value = Number(seekInput.value);
-      if (!isFinite(value)) return;
-
-      // 输入值仍然是整条时间轴上的百分比，这里自行换算成播放时间，
-      // 并阻止 Plyr 按 max=100 的默认逻辑处理自定义进度条范围
-      e.stopPropagation();
-      seekInput.removeAttribute('seek-value');
-
-      const time = Math.min(Math.max((value / 100) * duration, win.start), win.end);
-      if (Math.abs(video.currentTime - time) > 0.05) {
-        video.currentTime = time;
-      }
-      window.setTimeout(updateSeekFill, 0);
-    }
-
-    function clampCurrentTimeToWindow() {
-      const win = getLiveSeekWindow();
-      if (!win) return;
-      const time = video.currentTime;
-      if (!isFinite(time)) return;
-      if (time < win.start - 1) {
-        video.currentTime = win.start;
-      } else if (time > win.end + 1) {
-        video.currentTime = Math.max(win.start, win.end - 0.5);
-      }
-    }
-
-    if (seekInput) {
-      // capture 阶段接管进度条拖动，避免 Plyr 的自定义范围换算错误
-      player.elements.controls.addEventListener('input', handleSeekInput, true);
-      player.elements.controls.addEventListener('change', handleSeekInput, true);
-
-      video.addEventListener('timeupdate', updateSeekBounds);
-      video.addEventListener('progress', updateSeekBounds);
-      video.addEventListener('durationchange', updateSeekBounds);
-      video.addEventListener('seeked', updateSeekBounds);
-      // 直播窗口会持续前移，定时同步可拖动范围
-      window.setInterval(updateSeekBounds, 1000);
-    }
-
-    video.addEventListener('seeking', clampCurrentTimeToWindow);
-    video.addEventListener('play', function () {
-      // 初始加载时 currentTime 可能还没定位到直播边缘，避免过早纠正
-      if (video.readyState >= 2 && video.currentTime > 0) {
-        clampCurrentTimeToWindow();
-      }
-    });
-
     // 进入系统全屏时退出网页全屏，避免两种模式叠加
     player.on('enterfullscreen', function () {
       setWebFullscreen(false);
@@ -478,10 +373,10 @@
       const hlsOptions = {
         autoStartLoad: false,             // 不自动从默认位置加载，改为解析完清单后手动从直播边缘加载
         startPosition: -1,                // -1：直播时从最新位置开始
-        liveSyncDuration: 6,              // 目标延迟约 6 秒，进入后尽快追上最新画面
+        liveSyncDuration: 10,             // 目标延迟约 10 秒，适当增加缓冲以应对网络卡顿
         liveMaxLatencyDuration: 310,      // 落后超过约 5 分钟才强制回到直播边缘
         maxLiveSyncPlaybackRate: 1.5,     // 小幅落后时加速播放以追赶直播
-        backBufferLength: 300,            // 保留最近 5 分钟缓冲，支持回拖
+        backBufferLength: 300,            // 保留最近 5 分钟已播放缓冲
         lowLatencyMode: true,
         enableWorker: true,
         debug: false,
