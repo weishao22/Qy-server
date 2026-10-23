@@ -15,6 +15,7 @@ const healthPath = '/health';
 const healthAliasPath = '/api/danmaku/health';
 const wsPath = '/ws';
 const wsProxyPath = '/danmaku/ws';
+const wsApiPath = '/api/danmaku/ws';
 const MAX_TEXT_LENGTH = Number(process.env.MAX_TEXT_LENGTH) || 80;
 const MESSAGE_COOLDOWN_MS = Number(process.env.MESSAGE_COOLDOWN_MS) || 1200;
 const RATE_WINDOW_MS = Number(process.env.RATE_WINDOW_MS) || 10000;
@@ -176,7 +177,7 @@ server.on('upgrade', (request, socket, head) => {
     return;
   }
 
-  if (pathname !== wsPath && pathname !== wsProxyPath) {
+  if (pathname !== wsPath && pathname !== wsProxyPath && pathname !== wsApiPath) {
     rejectUpgrade(socket, 404, 'Not Found');
     return;
   }
@@ -310,7 +311,7 @@ app.get([healthPath, healthAliasPath], (req, res) => {
 app.get('/', (req, res) => {
   res.json({
     service: 'qy-live-danmaku',
-    websocket: wsPath,
+    websocket: wsApiPath,
     health: healthPath
   });
 });
@@ -341,5 +342,5 @@ process.on('SIGTERM', shutdown);
 
 server.listen(apiPort, apiHost, () => {
   const address = apiHost === '0.0.0.0' ? 'localhost' : apiHost;
-  console.log('弹幕服务已启动：http://' + address + ':' + apiPort + '  WebSocket: ' + wsPath);
+  console.log('弹幕服务已启动：http://' + address + ':' + apiPort + '  WebSocket: ' + wsApiPath);
 });
