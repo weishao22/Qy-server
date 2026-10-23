@@ -2,6 +2,7 @@
   'use strict';
 
   const DEFAULT_STREAM_ID = '666daf90f2b4';
+  const DEFAULT_WS_URL = 'wss://api.qyserver.top/api/danmaku/ws';
   const ENABLED_STORAGE_KEY = 'qy-live-danmaku-enabled';
   const WS_OVERRIDE_KEY = 'qy-live-danmaku-ws';
   const SEND_COOLDOWN_MS = 1200;
@@ -43,6 +44,13 @@
     return channelKey(value);
   }
 
+  function normalizeWsUrl(value) {
+    const url = String(value || '').trim();
+    if (/^https:\/\//i.test(url)) return 'wss://' + url.slice(8);
+    if (/^http:\/\//i.test(url)) return 'ws://' + url.slice(7);
+    return url;
+  }
+
   function getWsUrl() {
     let override = '';
     if (typeof window.LIVE_DANMAKU_WS === 'string') {
@@ -53,15 +61,14 @@
         override = (window.localStorage.getItem(WS_OVERRIDE_KEY) || '').trim();
       } catch (err) {}
     }
-    if (override) return override;
+    if (override) return normalizeWsUrl(override);
 
     const host = window.location.hostname;
     if (host === 'localhost' || host === '127.0.0.1' || host === '::1') {
       const address = host === '::1' ? '[::1]' : host;
       return 'ws://' + address + ':3002/ws';
     }
-    const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-    return protocol + window.location.host + '/danmaku/ws';
+    return DEFAULT_WS_URL;
   }
 
   function init() {
