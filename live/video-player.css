@@ -213,6 +213,144 @@ body.qy-web-fullscreen-active .container {
   display: block;
 }
 
+/* 弹幕浮层与发送栏 */
+.danmaku-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+  contain: layout style;
+}
+.danmaku-layer[hidden] {
+  display: none !important;
+}
+.danmaku-item {
+  position: absolute;
+  left: 0;
+  padding: 2px 10px;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px #000, 0 0 6px rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 999px;
+  will-change: transform;
+}
+.danmaku-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+.danmaku-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #eee;
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+}
+.danmaku-toggle input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: #f8a5c2;
+  cursor: pointer;
+}
+.danmaku-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #b9b9b9;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.danmaku-status::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  background: #888;
+  border-radius: 50%;
+}
+.danmaku-status[data-state="online"]::before {
+  background: #5bd67a;
+}
+.danmaku-status[data-state="connecting"]::before {
+  background: #f0c36d;
+  animation: qy-danmaku-pulse 1.2s ease-in-out infinite;
+}
+.danmaku-status[data-state="offline"]::before,
+.danmaku-status[data-state="error"]::before {
+  background: #ff6b6b;
+}
+.danmaku-status[data-state="error"] {
+  color: #ff9a9a;
+}
+.danmaku-input {
+  flex: 1 1 180px;
+  min-width: 0;
+  padding: 8px 12px;
+  color: #fff;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+.danmaku-input::placeholder {
+  color: #9a9a9a;
+}
+.danmaku-input:focus {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: #f8a5c2;
+}
+.danmaku-send {
+  flex: 0 0 auto;
+  padding: 8px 18px;
+  color: #1a1a1a;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #f8a5c2;
+  border: 0;
+  border-radius: 8px;
+  transition: filter 0.2s, opacity 0.2s;
+}
+.danmaku-send:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+.danmaku-send:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+@keyframes qy-danmaku-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+@media (max-width: 640px) {
+  .danmaku-bar {
+    gap: 8px;
+    padding: 10px;
+  }
+  .danmaku-status {
+    order: 3;
+    flex-basis: 100%;
+  }
+  .danmaku-item {
+    font-size: 16px;
+  }
+}
+
 /* 自定义Plyr主题色 */
 .plyr--full-ui {
   --plyr-color-main: #f8a5c2;

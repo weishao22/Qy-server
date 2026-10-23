@@ -3,7 +3,6 @@
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "minecraft-server-util": "^5.4.4",
-    "mysql2": "^3.20.0",
     "node-cron": "^4.2.1"
   }
 }

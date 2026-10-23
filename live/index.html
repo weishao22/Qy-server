@@ -16,6 +16,15 @@
       <div class="video-wrapper">
         <video id="qyVideo" playsinline crossorigin></video>
       </div>
+      <form class="danmaku-bar" id="danmakuForm" autocomplete="off">
+        <label class="danmaku-toggle" for="danmakuToggle">
+          <input type="checkbox" id="danmakuToggle" checked>
+          <span>弹幕</span>
+        </label>
+        <span class="danmaku-status" id="danmakuStatus" data-state="connecting">连接弹幕中...</span>
+        <input class="danmaku-input" id="danmakuInput" type="text" maxlength="80" placeholder="发一条弹幕..." aria-label="弹幕内容" enterkeyhint="send">
+        <button class="danmaku-send" id="danmakuSend" type="submit">发送</button>
+      </form>
     </div>
     <hr class="divider">
     <h3><i class="fas fa-comments" style="color: #bababa; margin-right: 10px;"></i>玩家评论</h3>
@@ -26,6 +35,7 @@
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.3/dist/hls.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.polyfilled.min.js"></script>
   <script src="video-player.js"></script>
+  <script src="danmaku.js"></script>
 
   <!-- 评论区：按直播频道隔离 Twikoo 评论，避免所有频道共用同一评论路径 -->
   <script>

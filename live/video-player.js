@@ -14,8 +14,7 @@
     // 也可通过网址参数指定：/live/?id=xxx&node=2
     const LIVE_NODES = [
       { name: '主节点', base: 'https://tv.qyserver.top/live/' },
-      { name: '备用1', base: 'https://live-aliyun.qyserver.top/live/' },
-      { name: '备2', base: 'https://live-cf.qyserver.top/live/' }
+      { name: '备用1', base: 'https://live-aliyun.qyserver.top/live/' }
     ];
 
     function getStreamParam() {
@@ -40,7 +39,6 @@
       } catch (e) { /* 参数解析异常时使用默认节点 */ }
       if (!raw) return 0;
       if (raw === 'aliyun' || raw === 'live-aliyun') return 1;
-      if (raw === 'cf' || raw === 'live-cf') return 2;
       if (raw === 'tv' || raw === 'main') return 0;
       const index = parseInt(raw, 10);
       if (index >= 1 && index <= LIVE_NODES.length) return index - 1;
