@@ -12,5 +12,6 @@ Disallow:
 Crawl-delay: 120
 Disallow: /bin/
 Disallow: /asses/
+Disallow: /server/
 
 Sitemap: https://www.qyserver.top/sitemap.xml
