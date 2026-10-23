@@ -4,6 +4,7 @@ const http = require('http');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env'), quiet: true });
 const express = require('express');
 const cors = require('cors');
 const { WebSocketServer, WebSocket } = require('ws');
@@ -16,12 +17,13 @@ const wsPath = '/ws';
 const wsProxyPath = '/danmaku/ws';
 const MAX_TEXT_LENGTH = Number(process.env.MAX_TEXT_LENGTH) || 80;
 const MESSAGE_COOLDOWN_MS = Number(process.env.MESSAGE_COOLDOWN_MS) || 1200;
-const RATE_WINDOW_MS = 10000;
-const RATE_WINDOW_LIMIT = 8;
-const HEARTBEAT_INTERVAL_MS = 30000;
-const MAX_PAYLOAD_BYTES = 4096;
+const RATE_WINDOW_MS = Number(process.env.RATE_WINDOW_MS) || 10000;
+const RATE_WINDOW_LIMIT = Number(process.env.RATE_WINDOW_LIMIT) || 8;
+const HEARTBEAT_INTERVAL_MS = Number(process.env.HEARTBEAT_INTERVAL_MS) || 30000;
+const MAX_PAYLOAD_BYTES = Number(process.env.MAX_PAYLOAD_BYTES) || 4096;
 const BANNED_WORDS_FILE = path.resolve(
-  process.env.BANNED_WORDS_FILE || path.join(__dirname, 'banned-words.json')
+  __dirname,
+  process.env.BANNED_WORDS_FILE || 'banned-words.json'
 );
 
 const ALLOWED_ORIGINS = String(process.env.ALLOWED_ORIGINS || '')

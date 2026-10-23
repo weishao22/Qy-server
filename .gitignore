@@ -4,6 +4,7 @@
 /server/*
 !/server/Status/
 !/server/Danmaku/
+!/server/Danmaku/.env.example
 /server/Status/status-history.json
 /server/Status/status-history.json.tmp
 /.kilo

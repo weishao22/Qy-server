@@ -22,17 +22,34 @@ npm start
 
 默认监听 `0.0.0.0:3002`，WebSocket 地址为 `ws://服务器:3002/ws`，健康检查为 `GET /health`（别名 `GET /api/danmaku/health`）。需要 Node.js 18 及以上版本。
 
+## 使用 .env 配置
+
+复制模板并修改：
+
+```powershell
+cd server/Danmaku
+Copy-Item .env.example .env
+notepad .env
+npm start
+```
+
+`server.js` 启动时会自动读取同目录下的 `.env`。`.env` 已被 `.gitignore` 忽略，不会提交；`.env.example` 是配置模板。系统环境变量优先级高于 `.env` 中的同名配置。
+
 ## 环境变量
 
 | 变量 | 默认值 | 说明 |
 | --- | --- | --- |
+| `HOST` | `0.0.0.0` | HTTP / WebSocket 监听地址 |
 | `PORT` | `3002` | HTTP / WebSocket 端口 |
-| `HOST` | `0.0.0.0` | 监听地址 |
+| `ALLOWED_ORIGINS` | 空（允许所有） | 允许的网页来源，逗号分隔 |
 | `MAX_TEXT_LENGTH` | `80` | 单条弹幕最大字符数 |
 | `MESSAGE_COOLDOWN_MS` | `1200` | 同一连接两次发送的最小间隔 |
-| `ALLOWED_ORIGINS` | 空（允许所有） | 允许的网页来源，逗号分隔，例如 `https://www.qyserver.top` |
+| `RATE_WINDOW_MS` | `10000` | 频率限制统计窗口 |
+| `RATE_WINDOW_LIMIT` | `8` | 统计窗口内最多发送条数 |
+| `HEARTBEAT_INTERVAL_MS` | `30000` | WebSocket 心跳间隔 |
+| `MAX_PAYLOAD_BYTES` | `4096` | 单条 WebSocket 消息最大字节数 |
 | `BANNED_WORDS` | 空 | 额外违禁词，逗号分隔，会与配置文件合并 |
-| `BANNED_WORDS_FILE` | `banned-words.json` | 违禁词配置文件路径 |
+| `BANNED_WORDS_FILE` | `banned-words.json` | 违禁词配置文件路径，相对路径以 `server/Danmaku` 为基准 |
 
 PowerShell 启动示例：
 
