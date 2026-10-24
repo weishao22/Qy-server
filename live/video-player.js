@@ -373,8 +373,10 @@
       const hlsOptions = {
         autoStartLoad: false,             // 不自动从默认位置加载，改为解析完清单后手动从直播边缘加载
         startPosition: -1,                // -1：直播时从最新位置开始
-        liveSyncDuration: 10,             // 目标延迟约 10 秒，适当增加缓冲以应对网络卡顿
-        liveMaxLatencyDuration: 310,      // 落后超过约 5 分钟才强制回到直播边缘
+        liveSyncDurationCount: 3,         // 目标延迟约 3 个分片，提前预加载后续文件
+        liveMaxLatencyDurationCount: 6,   // 落后超过约 6 个分片才强制回到直播边缘
+        maxBufferLength: 60,              // 前向缓冲上限 60 秒，避免临近播完才请求下一段
+        maxMaxBufferLength: 120,          // 允许的最大前向缓冲
         maxLiveSyncPlaybackRate: 1.5,     // 小幅落后时加速播放以追赶直播
         backBufferLength: 300,            // 保留最近 5 分钟已播放缓冲
         lowLatencyMode: true,
