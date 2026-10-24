@@ -408,8 +408,8 @@
           return Object.assign({}, BASE_HLS_OPTIONS, {
             liveSyncDuration: Math.max(6, segmentDuration * 2),
             liveMaxLatencyDuration: 30,
-            maxBufferLength: 30,
-            maxMaxBufferLength: 60
+            maxBufferLength: 60,
+            maxMaxBufferLength: 120
           });
         }
 
@@ -417,16 +417,16 @@
           return Object.assign({}, BASE_HLS_OPTIONS, {
             liveSyncDuration: Math.max(12, segmentDuration * 1.5),
             liveMaxLatencyDuration: 45,
-            maxBufferLength: 45,
-            maxMaxBufferLength: 90
+            maxBufferLength: 60,
+            maxMaxBufferLength: 120
           });
         }
 
         return Object.assign({}, BASE_HLS_OPTIONS, {
           liveSyncDuration: segmentDuration > 0 ? Math.max(20, segmentDuration + 3) : 20,
           liveMaxLatencyDuration: 60,
-          maxBufferLength: 60,
-          maxMaxBufferLength: 120
+          maxBufferLength: 90,
+          maxMaxBufferLength: 180
         });
       }
 

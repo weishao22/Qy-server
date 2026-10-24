@@ -644,14 +644,36 @@
         }
 
         .popup-overlay .popup-content::-webkit-scrollbar {
-            width: 0;
-            height: 0;
-            display: none;
+            width: 10px;
+            height: 10px;
+        }
+
+        .popup-overlay .popup-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .popup-overlay .popup-content::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, var(--scrollbar-thumb), var(--scrollbar-thumb-end));
+            background-clip: padding-box;
+            border: 2px solid transparent;
+            border-radius: 10px;
+        }
+
+        .popup-overlay .popup-content::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, var(--scrollbar-thumb-hover), var(--scrollbar-thumb-end-hover));
+            background-clip: padding-box;
+            border: 2px solid transparent;
         }
 
         .popup-overlay .popup-content {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+            -ms-overflow-style: auto;
+        }
+
+        @supports (-moz-appearance: none) {
+            .popup-overlay .popup-content {
+                scrollbar-width: thin;
+                scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+            }
         }
 
         /* 信息卡片 */

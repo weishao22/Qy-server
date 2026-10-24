@@ -23,17 +23,135 @@ body {
     scroll-behavior: smooth;
 }
 
-/* 隐藏滚动条 */
+/* 滚动条美化（全站显示） */
+:root {
+    --scrollbar-thumb: rgba(251, 208, 224, 0.9);
+    --scrollbar-thumb-end: rgba(221, 204, 245, 0.9);
+    --scrollbar-thumb-hover: rgba(249, 189, 212, 0.95);
+    --scrollbar-thumb-end-hover: rgba(208, 184, 240, 0.95);
+    --scrollbar-track: transparent;
+}
+
 html,
 body {
+    -ms-overflow-style: auto;
+}
+
+/* Firefox 使用标准滚动条属性；Chromium/Safari 保留下方 WebKit 美化样式 */
+@supports (-moz-appearance: none) {
+
+    html,
+    body {
+        scrollbar-width: thin;
+        scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    }
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--scrollbar-thumb), var(--scrollbar-thumb-end));
+    background-clip: padding-box;
+    border: 3px solid transparent;
+    border-radius: 10px;
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--scrollbar-thumb-hover), var(--scrollbar-thumb-end-hover));
+    background-clip: padding-box;
+    border: 3px solid transparent;
+}
+
+html::-webkit-scrollbar-corner,
+body::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+@media (max-width: 768px) {
+
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    html::-webkit-scrollbar-thumb,
+    body::-webkit-scrollbar-thumb {
+        border-width: 2px;
+    }
+}
+
+/* ---------- 自定义悬浮滚动条（无轨道、无白色底框） ---------- */
+html.qy-custom-scrollbar,
+html.qy-custom-scrollbar body {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
 
-html::-webkit-scrollbar {
+html.qy-custom-scrollbar::-webkit-scrollbar,
+html.qy-custom-scrollbar body::-webkit-scrollbar {
     width: 0;
     height: 0;
     display: none;
+}
+
+#qy-scrollbar {
+    position: fixed;
+    top: 0;
+    right: 3px;
+    width: 8px;
+    height: 100vh;
+    z-index: 999;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+#qy-scrollbar.qy-visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+#qy-scrollbar-thumb {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    border-radius: 999px;
+    background: linear-gradient(180deg, var(--scrollbar-thumb), var(--scrollbar-thumb-end));
+    box-shadow: 0 0 6px rgba(248, 165, 194, 0.2);
+    cursor: grab;
+    pointer-events: auto;
+    touch-action: none;
+    transition: width 0.2s ease, left 0.2s ease;
+}
+
+#qy-scrollbar:hover #qy-scrollbar-thumb,
+#qy-scrollbar.qy-dragging #qy-scrollbar-thumb {
+    width: 10px;
+    left: -1px;
+}
+
+#qy-scrollbar.qy-dragging #qy-scrollbar-thumb {
+    cursor: grabbing;
+}
+
+@media (hover: none), (pointer: coarse), (max-width: 768px) {
+    #qy-scrollbar {
+        display: none;
+    }
 }
 
 a {
