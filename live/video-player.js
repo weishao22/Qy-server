@@ -382,7 +382,17 @@
 
       function buildHlsOptions(manifestText) {
         const targetMatch = manifestText.match(/#EXT-X-TARGETDURATION:\s*([\d.]+)/i);
-        const targetDuration = targetMatch ? Number(targetMatch[1]) : 0;
+        const headerDuration = targetMatch ? Number(targetMatch[1]) : 0;
+        const segmentDurations = [];
+        const extinfRegex = /#EXTINF:\s*([\d.]+)/gi;
+        let extinfMatch;
+        while ((extinfMatch = extinfRegex.exec(manifestText))) {
+          const duration = Number(extinfMatch[1]);
+          if (Number.isFinite(duration)) segmentDurations.push(duration);
+        }
+        const segmentDuration = segmentDurations.length
+          ? Math.max.apply(null, segmentDurations)
+          : headerDuration;
         const isLowLatency = /#EXT-X-PART|CAN-BLOCK-RELOAD=YES/i.test(manifestText);
 
         if (isLowLatency) {
@@ -394,18 +404,18 @@
           });
         }
 
-        if (targetDuration > 0 && targetDuration <= 5) {
+        if (segmentDuration > 0 && segmentDuration <= 5) {
           return Object.assign({}, BASE_HLS_OPTIONS, {
-            liveSyncDuration: Math.max(6, targetDuration * 2),
+            liveSyncDuration: Math.max(6, segmentDuration * 2),
             liveMaxLatencyDuration: 30,
             maxBufferLength: 30,
             maxMaxBufferLength: 60
           });
         }
 
-        if (targetDuration > 0 && targetDuration <= 10) {
+        if (segmentDuration > 0 && segmentDuration <= 10) {
           return Object.assign({}, BASE_HLS_OPTIONS, {
-            liveSyncDuration: Math.max(12, targetDuration * 1.5),
+            liveSyncDuration: Math.max(12, segmentDuration * 1.5),
             liveMaxLatencyDuration: 45,
             maxBufferLength: 45,
             maxMaxBufferLength: 90
@@ -413,7 +423,7 @@
         }
 
         return Object.assign({}, BASE_HLS_OPTIONS, {
-          liveSyncDuration: targetDuration > 0 ? Math.max(20, targetDuration + 3) : 20,
+          liveSyncDuration: segmentDuration > 0 ? Math.max(20, segmentDuration + 3) : 20,
           liveMaxLatencyDuration: 60,
           maxBufferLength: 60,
           maxMaxBufferLength: 120
