@@ -108,10 +108,10 @@ html.qy-custom-scrollbar body::-webkit-scrollbar {
 
 #qy-scrollbar {
     position: fixed;
-    top: 0;
+    top: 60px;
     right: 3px;
     width: 8px;
-    height: 100vh;
+    height: calc(100vh - 60px);
     z-index: 999;
     pointer-events: none;
     opacity: 0;
