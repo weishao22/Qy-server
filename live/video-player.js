@@ -369,14 +369,10 @@
     if (window.Hls && Hls.isSupported()) {
       console.log('✅ HLS.js 已支持，开始加载流...');
 
-      // 直播优化：进入后直接对齐“直播边缘”，只拉取最新分片，避免从头加载已过期的旧数据
-      const hlsOptions = {
+      // 直播优化：根据清单分片长度自动选择延迟目标，开启服务端低延迟后无需再改代码
+      const BASE_HLS_OPTIONS = {
         autoStartLoad: false,             // 不自动从默认位置加载，改为解析完清单后手动从直播边缘加载
         startPosition: -1,                // -1：直播时从最新位置开始
-        liveSyncDuration: 20,             // 目标延迟约 20 秒，略大于一个分片，兼顾低延迟与预加载
-        liveMaxLatencyDuration: 60,       // 落后超过 60 秒才强制回到直播边缘
-        maxBufferLength: 60,              // 前向缓冲上限 60 秒，避免临近播完才请求下一段
-        maxMaxBufferLength: 120,          // 允许的最大前向缓冲
         maxLiveSyncPlaybackRate: 1.5,     // 小幅落后时加速播放以追赶直播
         backBufferLength: 300,            // 保留最近 5 分钟已播放缓冲
         lowLatencyMode: true,
@@ -384,8 +380,64 @@
         debug: false,
       };
 
+      function buildHlsOptions(manifestText) {
+        const targetMatch = manifestText.match(/#EXT-X-TARGETDURATION:\s*([\d.]+)/i);
+        const targetDuration = targetMatch ? Number(targetMatch[1]) : 0;
+        const isLowLatency = /#EXT-X-PART|CAN-BLOCK-RELOAD=YES/i.test(manifestText);
+
+        if (isLowLatency) {
+          return Object.assign({}, BASE_HLS_OPTIONS, {
+            liveSyncDuration: 4,
+            liveMaxLatencyDuration: 12,
+            maxBufferLength: 20,
+            maxMaxBufferLength: 40
+          });
+        }
+
+        if (targetDuration > 0 && targetDuration <= 5) {
+          return Object.assign({}, BASE_HLS_OPTIONS, {
+            liveSyncDuration: Math.max(6, targetDuration * 2),
+            liveMaxLatencyDuration: 30,
+            maxBufferLength: 30,
+            maxMaxBufferLength: 60
+          });
+        }
+
+        if (targetDuration > 0 && targetDuration <= 10) {
+          return Object.assign({}, BASE_HLS_OPTIONS, {
+            liveSyncDuration: Math.max(12, targetDuration * 1.5),
+            liveMaxLatencyDuration: 45,
+            maxBufferLength: 45,
+            maxMaxBufferLength: 90
+          });
+        }
+
+        return Object.assign({}, BASE_HLS_OPTIONS, {
+          liveSyncDuration: targetDuration > 0 ? Math.max(20, targetDuration + 3) : 20,
+          liveMaxLatencyDuration: 60,
+          maxBufferLength: 60,
+          maxMaxBufferLength: 120
+        });
+      }
+
+      async function getHlsOptions(url) {
+        let timer = null;
+        try {
+          const controller = new AbortController();
+          timer = window.setTimeout(function () { controller.abort(); }, 3000);
+          const res = await fetch(url, { cache: 'no-store', signal: controller.signal });
+          if (!res.ok) return buildHlsOptions('');
+          return buildHlsOptions(await res.text());
+        } catch (err) {
+          return buildHlsOptions('');
+        } finally {
+          if (timer) window.clearTimeout(timer);
+        }
+      }
+
       const MAX_FRESH_RETRIES = 3;
       let hls = null;
+      let loadToken = 0;
       let retries = 0;
       let snapped = false;
       let autoFailoverCount = 0;
@@ -446,9 +498,12 @@
 
       switchNodeHandler = switchNode;
 
-      function loadHls(url) {
+      async function loadHls(url) {
+        const token = ++loadToken;
         snapped = false;
-        hls = new Hls(hlsOptions);
+        const options = await getHlsOptions(url);
+        if (token !== loadToken) return;
+        hls = new Hls(options);
         window.hls = hls;
         hls.attachMedia(video);
         hls.loadSource(url);
