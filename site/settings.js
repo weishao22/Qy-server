@@ -24,6 +24,10 @@ const DEFAULTS = {
     bannedWords: []
   },
   comments: {
+    mode: 'thirdparty',
+    provider: 'twikoo',
+    serverUrl: '',
+    scriptUrl: '',
     enabled: true,
     requireEmail: false,
     cooldownMs: 20000,

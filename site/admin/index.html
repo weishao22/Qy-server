@@ -105,13 +105,27 @@
             <div class="view-head">
                 <div>
                     <h2>评论管理</h2>
-                    <p class="view-sub">本站自带的轻量评论服务，替代已失效的 Twikoo。</p>
+                    <p class="view-sub">官网默认使用第三方评论服务（Twikoo / Waline），在此填写你部署好的评论服务器地址；下方列表为本站内置评论的历史记录。</p>
                 </div>
                 <div class="view-actions">
                     <input type="search" id="comment-filter" placeholder="按页面路径筛选，例如 /about/">
                     <button type="button" class="btn-ghost" id="comment-refresh">刷新</button>
                 </div>
             </div>
+            <form class="settings-card" id="comment-provider-form" style="margin-bottom:18px;">
+                <h3>第三方评论服务</h3>
+                <label class="field"><span>服务商</span>
+                    <select name="provider">
+                        <option value="twikoo">Twikoo</option>
+                        <option value="waline">Waline</option>
+                    </select>
+                </label>
+                <label class="field"><span>评论服务器地址</span><input type="text" name="serverUrl" placeholder="https://comment.example.com"></label>
+                <label class="field"><span>脚本地址（可选）</span><input type="text" name="scriptUrl" placeholder="留空则使用官方 CDN"></label>
+                <div class="view-actions" style="margin-top:6px;">
+                    <button type="submit" class="btn-primary">保存并切换</button>
+                </div>
+            </form>
             <div id="comment-list" class="comment-list"></div>
         </section>
 
@@ -133,7 +147,7 @@
                     <label class="field"><span>端口</span><input type="number" name="port" min="1" max="65535"></label>
                     <label class="field checkbox"><input type="checkbox" name="srv"> <span>启用 SRV 解析</span></label>
                     <label class="field"><span>记录间隔（分钟）</span><input type="number" name="recordCronMinutes" min="1" max="120"></label>
-                    <label class="field"><span>互通服（每行：名称|地址|端口）</span><textarea name="extraServers" rows="3" placeholder="Java互通|java.qyserver.top|25565"></textarea></label>
+                    <label class="field"><span>JAVA 服务器（每行：名称|地址|端口）</span><textarea name="extraServers" rows="3" placeholder="JAVA服务器|java.qyserver.top|25565"></textarea></label>
                 </form>
 
                 <form class="settings-card" id="settings-danmaku">
@@ -147,6 +161,20 @@
 
                 <form class="settings-card" id="settings-comments">
                     <h3>评论</h3>
+                    <label class="field"><span>评论模式</span>
+                        <select name="mode">
+                            <option value="thirdparty">第三方评论（推荐）</option>
+                            <option value="local">本站内置（备用）</option>
+                        </select>
+                    </label>
+                    <label class="field"><span>服务商</span>
+                        <select name="provider">
+                            <option value="twikoo">Twikoo</option>
+                            <option value="waline">Waline</option>
+                        </select>
+                    </label>
+                    <label class="field"><span>评论服务器地址</span><input type="text" name="serverUrl" placeholder="https://comment.example.com"></label>
+                    <label class="field"><span>脚本地址（可选，留空用官方 CDN）</span><input type="text" name="scriptUrl" placeholder="https://cdn.jsdelivr.net/npm/twikoo/dist/twikoo.min.js"></label>
                     <label class="field checkbox"><input type="checkbox" name="enabled"> <span>开启评论</span></label>
                     <label class="field checkbox"><input type="checkbox" name="requireEmail"> <span>必须填写邮箱</span></label>
                     <label class="field"><span>发表冷却（毫秒）</span><input type="number" name="cooldownMs" min="0" max="600000"></label>

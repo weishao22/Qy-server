@@ -631,6 +631,29 @@ el('comment-filter').addEventListener('keydown', (event) => {
     if (event.key === 'Enter') loadComments();
 });
 
+const commentProviderForm = document.getElementById('comment-provider-form');
+if (commentProviderForm) {
+    commentProviderForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        try {
+            await api('/api/admin/settings', {
+                method: 'PUT',
+                body: JSON.stringify({
+                    comments: {
+                        mode: 'thirdparty',
+                        provider: commentProviderForm.provider.value === 'waline' ? 'waline' : 'twikoo',
+                        serverUrl: commentProviderForm.serverUrl.value.trim(),
+                        scriptUrl: commentProviderForm.scriptUrl.value.trim()
+                    }
+                })
+            });
+            showToast('已切换第三方评论服务', 'ok');
+        } catch (error) {
+            showToast(error.message, 'error');
+        }
+    });
+}
+
 /* ---------------- 设置 ---------------- */
 function linesToLinks(text) {
     return text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line) => {
@@ -662,11 +685,22 @@ async function loadSettings() {
         dm.bannedWords.value = (data.danmaku.bannedWords || []).join('\n');
 
         const cm = document.getElementById('settings-comments');
+        cm.mode.value = data.comments.mode || 'thirdparty';
+        cm.provider.value = data.comments.provider || 'twikoo';
+        cm.serverUrl.value = data.comments.serverUrl || '';
+        cm.scriptUrl.value = data.comments.scriptUrl || '';
         cm.enabled.checked = data.comments.enabled !== false;
         cm.requireEmail.checked = Boolean(data.comments.requireEmail);
         cm.cooldownMs.value = data.comments.cooldownMs;
         cm.maxLength.value = data.comments.maxLength;
         cm.maxNick.value = data.comments.maxNick;
+
+        const providerForm = document.getElementById('comment-provider-form');
+        if (providerForm) {
+            providerForm.provider.value = data.comments.provider || 'twikoo';
+            providerForm.serverUrl.value = data.comments.serverUrl || '';
+            providerForm.scriptUrl.value = data.comments.scriptUrl || '';
+        }
 
         const vw = document.getElementById('settings-views');
         vw.cooldownMs.value = data.views.cooldownMs;
@@ -696,6 +730,10 @@ async function saveSettings() {
             bannedWords: dm.bannedWords.value.split(/\r?\n/).map((word) => word.trim()).filter(Boolean)
         },
         comments: {
+            mode: cm.mode.value === 'local' ? 'local' : 'thirdparty',
+            provider: cm.provider.value === 'waline' ? 'waline' : 'twikoo',
+            serverUrl: cm.serverUrl.value.trim(),
+            scriptUrl: cm.scriptUrl.value.trim(),
             enabled: cm.enabled.checked,
             requireEmail: cm.requireEmail.checked,
             cooldownMs: Number(cm.cooldownMs.value) || 0,

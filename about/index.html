@@ -865,6 +865,11 @@
         </div>
     </section>
 
+    <!-- 评论区域 -->
+    <section id="tcomment" class="comments-section">
+        <div class="tk-comments-container"></div>
+    </section>
+
     <!-- 引入 Twikoo JS 库 -->
     <script src="https://s4.zstatic.net/npm/twikoo@1.7.11/dist/twikoo.min.js"></script>
     <script src="/lib/all.js"></script>
@@ -964,46 +969,7 @@
             });
         });
 
-        // ========== Twikoo 评论系统初始化 ==========
-        // 等待页面完全加载后初始化 Twikoo
-        document.addEventListener('DOMContentLoaded', function () {
-            // 检查 Twikoo 库是否已加载
-            if (typeof twikoo === 'undefined') {
-                console.error('Twikoo 库未加载，请检查网络或CDN链接');
-                return;
-            }
-
-            // 初始化 Twikoo
-            twikoo.init({
-                // 重要：这里填写 Twikoo 后端地址，
-                envId: 'https://plapi.qyserver.cc/',
-                el: '#tcomment',
-                lang: 'zh-CN',
-                path: window.location.pathname,
-                placeholder: '来分享你对QYServer的看法吧！支持Markdown语法~<br>使用QQ邮箱可以显示头像哦',
-                meta: [
-                    { name: '昵称', placeholder: '怎么称呼你？（必填）', required: true },
-                    { name: '邮箱', placeholder: '方便联系你（选填）', required: false },
-                    { name: '网站', placeholder: '你的个人主页（选填）', required: false }
-                ],
-                onCommentLoaded: function () {
-                    console.log('Twikoo 评论加载完成');
-                },
-                onCommentClicked: function (comment) {
-                    console.log('评论被点击', comment);
-                }
-            }).then(function () {
-                console.log('Twikoo 初始化成功');
-            }).catch(function (err) {
-                console.error('Twikoo 初始化失败:', err);
-                // 显示错误信息
-                const commentSection = document.getElementById('tcomment');
-                if (commentSection) {
-                    commentSection.innerHTML = '<p style="color: #f8a5c2; text-align: center;">评论加载失败，请检查 Twikoo 后端服务是否正常运行。</p>';
-                }
-            });
-        });
-
+        // 评论由 /lib/comments-widget.js 统一初始化（支持后台配置的第三方评论）
         // 加载配置文件并渲染时间线
         async function loadTimeline() {
             try {

@@ -1,0 +1,138 @@
+/* QYServer 区块（Block）系统样式 */
+.qy-blocks-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 96px 20px 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+.qy-block {
+    width: 100%;
+    position: relative;
+}
+
+/* 顶部横幅 */
+.qy-hero {
+    border-radius: 20px;
+    padding: 90px 40px;
+    color: #fff;
+    overflow: hidden;
+    text-align: center;
+}
+.qy-hero-inner { max-width: 900px; margin: 0 auto; }
+.qy-hero h1 { font-size: 3rem; margin-bottom: 14px; text-shadow: 0 2px 12px rgba(0,0,0,.18); }
+.qy-hero p { font-size: 1.25rem; line-height: 1.7; opacity: .95; white-space: pre-line; }
+.qy-hero-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 26px; }
+.qy-hero-btn {
+    display: inline-block;
+    padding: 12px 26px;
+    border-radius: 10px;
+    background: rgba(255,255,255,.16);
+    border: 2px solid rgba(255,255,255,.75);
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+    transition: .2s;
+}
+.qy-hero-btn:hover { background: #fff; color: #c25a7f; transform: translateY(-2px); }
+
+/* 文本 */
+.qy-heading { font-size: 1.9rem; color: #3c3741; margin: 0 0 6px; position: relative; padding-bottom: 10px; }
+.qy-heading::after { content: ""; position: absolute; left: 0; bottom: 0; width: 72px; height: 4px; border-radius: 2px; background: linear-gradient(90deg,#f8a5c2,#a56de2); }
+.qy-text { font-size: 1.02rem; line-height: 1.9; color: #57515e; }
+.qy-text img { max-width: 100%; height: auto; border-radius: 12px; }
+.qy-text a { color: #d0648a; }
+.qy-md { font-size: 1rem; line-height: 1.9; color: #57515e; white-space: pre-wrap; }
+.qy-md h1,.qy-md h2,.qy-md h3 { color: #3c3741; margin: 18px 0 10px; }
+.qy-md pre { background: #f7f3f8; padding: 14px; border-radius: 10px; overflow: auto; }
+.qy-md code { background: #f3edf5; padding: 1px 5px; border-radius: 4px; }
+.qy-quote { margin: 0; padding: 18px 24px; border-left: 5px solid #f8a5c2; background: #fdf7fa; color: #6a5f6d; border-radius: 0 12px 12px 0; font-size: 1.05rem; line-height: 1.9; }
+.qy-quote cite { display: block; margin-top: 10px; font-size: .88rem; color: #a294a6; font-style: normal; }
+
+/* 公告条 */
+.qy-notice { border-radius: 12px; padding: 14px 18px; line-height: 1.8; font-size: .95rem; }
+.qy-notice strong { display: block; margin-bottom: 4px; }
+.qy-notice-pink { background: #fdf1f6; border: 1px solid #f8cddd; color: #b1577a; }
+.qy-notice-warn { background: #fff8e6; border: 1px solid #ffe3a3; color: #8a6d1f; }
+.qy-notice-plain { background: #f6f5f7; border: 1px solid #e8e4ea; color: #666; }
+
+/* 媒体 */
+.qy-figure { margin: 0; }
+.qy-figure img { width: 100%; height: auto; border-radius: 14px; display: block; box-shadow: 0 10px 30px rgba(180,150,180,.16); }
+.qy-figure figcaption { text-align: center; font-size: .86rem; color: #a294a6; margin-top: 8px; }
+.qy-carousel { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 8px; }
+.qy-carousel-slide { flex: 0 0 min(560px, 86%); scroll-snap-align: center; border-radius: 14px; overflow: hidden; background: #faf7fb; position: relative; }
+.qy-carousel-slide img { width: 100%; height: 300px; object-fit: cover; display: block; }
+.qy-carousel-slide span { position: absolute; left: 0; right: 0; bottom: 0; padding: 8px 12px; font-size: .82rem; color: #fff; background: linear-gradient(transparent, rgba(0,0,0,.55)); }
+.qy-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.qy-gallery figure { margin: 0; border-radius: 12px; overflow: hidden; background: #faf7fb; }
+.qy-gallery img { width: 100%; height: 180px; object-fit: cover; display: block; transition: .25s; }
+.qy-gallery figure:hover img { transform: scale(1.04); }
+.qy-gallery figcaption { font-size: .78rem; color: #9a8fa0; padding: 6px 8px; }
+.qy-video, .qy-iframe { width: 100%; border: none; border-radius: 14px; background: #f6f3f8; display: block; }
+.qy-video { max-height: 620px; }
+
+/* 卡片与网格 */
+.qy-card { background: #fff; border: 1px solid #f1e7f1; border-radius: 16px; padding: 26px; box-shadow: 0 10px 30px rgba(190,160,200,.12); }
+.qy-card h3 { margin: 0 0 10px; color: #3c3741; font-size: 1.35rem; }
+.qy-card-text { color: #615a67; line-height: 1.9; }
+.qy-card-btn { display: inline-block; margin-top: 16px; padding: 9px 20px; border-radius: 9px; background: linear-gradient(135deg,#f8a5c2,#f0789d); color: #fff; text-decoration: none; font-size: .92rem; }
+.qy-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+.qy-card-grid-item { display: block; background: #fff; border: 1px solid #f1e7f1; border-radius: 14px; padding: 20px; text-decoration: none; color: inherit; transition: .22s; }
+.qy-card-grid-item:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(190,160,200,.18); }
+.qy-card-grid-item i { color: #f0789d; font-size: 1.5rem; margin-bottom: 10px; display: block; }
+.qy-card-grid-item h3 { margin: 0 0 8px; font-size: 1.05rem; color: #3c3741; }
+.qy-card-grid-item p { margin: 0; font-size: .88rem; color: #8a8190; line-height: 1.7; }
+.qy-list-block h3, .qy-links-block h3 { margin: 0 0 12px; color: #3c3741; font-size: 1.2rem; }
+.qy-list-block ul { margin: 0; padding-left: 20px; color: #615a67; line-height: 2; }
+.qy-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
+.qy-stat { background: #fff; border: 1px solid #f1e7f1; border-radius: 14px; padding: 18px; text-align: center; }
+.qy-stat-value { display: block; font-size: 1.8rem; font-weight: 700; color: #d0648a; }
+.qy-stat-label { font-size: .85rem; color: #8a8190; }
+.qy-timeline { position: relative; padding-left: 26px; }
+.qy-timeline::before { content: ""; position: absolute; left: 7px; top: 4px; bottom: 4px; width: 3px; border-radius: 2px; background: linear-gradient(180deg,#f8a5c2,#a56de2); }
+.qy-timeline-item { position: relative; margin-bottom: 20px; }
+.qy-timeline-item::before { content: ""; position: absolute; left: -26px; top: 5px; width: 15px; height: 15px; border-radius: 50%; background: #fff; border: 3px solid #f8a5c2; }
+.qy-timeline-date { font-size: .84rem; color: #d0648a; font-weight: 600; margin-bottom: 4px; }
+.qy-timeline-body h3 { margin: 0 0 4px; font-size: 1.05rem; color: #3c3741; }
+.qy-timeline-body p { margin: 0; color: #7c7382; line-height: 1.8; font-size: .92rem; }
+.qy-links { display: flex; flex-wrap: wrap; gap: 10px; }
+.qy-links a { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 999px; background: #fff; border: 1px solid #f0e2ec; color: #8a6a7c; text-decoration: none; font-size: .9rem; transition: .18s; }
+.qy-links a:hover { background: #f8a5c2; color: #fff; border-color: #f8a5c2; }
+.qy-links a i { font-size: .82rem; }
+
+/* 动态区块 */
+.qy-status-card, .qy-comments-block { background: #fff; border: 1px solid #f1e7f1; border-radius: 16px; padding: 24px; box-shadow: 0 10px 30px rgba(190,160,200,.1); }
+.qy-status-card h3, .qy-comments-block h3 { margin: 0 0 14px; color: #3c3741; }
+.qy-widget-status .qy-status-line { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.qy-widget-status .qy-status-dot { width: 10px; height: 10px; border-radius: 50%; background: #bbb; flex: none; }
+.qy-widget-status .qy-status-dot.online { background: #4caf8a; box-shadow: 0 0 0 5px rgba(76,175,138,.16); }
+.qy-widget-status .qy-status-dot.offline { background: #e0566f; box-shadow: 0 0 0 5px rgba(224,86,111,.14); }
+.qy-widget-status .qy-status-main { font-size: 1rem; font-weight: 600; color: #4a4a4a; }
+.qy-widget-status .qy-status-sub { font-size: .84rem; color: #9a929d; word-break: break-word; }
+.qy-site-widget-empty { color: #b3abb9; font-size: .9rem; }
+.qy-divider { border: none; height: 1px; background: linear-gradient(90deg, transparent, #ead9e4, transparent); margin: 6px 0; }
+.qy-raw { display: flex; flex-direction: column; gap: 16px; }
+
+/* 空区块：仅在编辑模式显示，避免“拖进来保存后消失” */
+.qy-block-empty { display: none; }
+body.qy-block-editing .qy-block-empty {
+    display: block;
+    border: 2px dashed #efb9d0;
+    border-radius: 12px;
+    padding: 22px;
+    text-align: center;
+    color: #b06a8b;
+    background: rgba(248, 165, 194, .07);
+    font-size: .9rem;
+}
+
+@media (max-width: 768px) {
+    .qy-blocks-page { padding: 84px 14px 40px; gap: 22px; }
+    .qy-hero { padding: 64px 20px; border-radius: 16px; }
+    .qy-hero h1 { font-size: 2.1rem; }
+    .qy-hero p { font-size: 1rem; }
+    .qy-carousel-slide img { height: 210px; }
+}

@@ -1440,7 +1440,7 @@
 
             // 【核心改造：动态获取弹窗数据机制】
             // 通过请求加时间戳，彻底干掉本地和 CDN 的 JSON 缓存
-            fetch('https://nginx-termux.qyserver.top/Configs/dontShowPopup.json?t=' + new Date().getTime())
+            fetch('/Configs/dontShowPopup.json?t=' + new Date().getTime())
                 .then(res => {
                     if (!res.ok) throw new Error('网络请求失败');
                     return res.json();
@@ -1466,14 +1466,12 @@
                     }
 
                     // 3. 判断当前版本号本地有没有看守过，如果没有，2 秒后弹出
-                    if (localStorage.getItem(storageKey) !== 'true') {
-                        setTimeout(function () {
-                            const po = document.getElementById('popupOverlay');
-                            if (po) {
-                                po.style.display = 'flex';
-                                document.body.classList.add('no-scroll');
-                            }
-                        }, 2000);
+                              if (localStorage.getItem(storageKey) !== 'true' && !/[?&]edit=1(?:&|$)/.test(location.search)) {
+                        const po = document.getElementById('popupOverlay');
+                        if (po) {
+                            po.style.display = 'flex';
+                            document.body.classList.add('no-scroll');
+                        }
                     }
 
                     // 4. “知道了” 按钮点击逻辑：根据当前配置的版本号锁死

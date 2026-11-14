@@ -22,13 +22,13 @@ const TYPES = [
 
 function defaults() {
   return [
-    { id: 'w-status', type: 'status', title: '服务器状态', size: 1, visible: true, onSite: false, config: {} },
+    { id: 'w-status', type: 'status', title: '服务器状态', size: 1, visible: true, onSite: true, config: {} },
     { id: 'w-history', type: 'history', title: '在线人数趋势', size: 2, visible: true, onSite: false, config: {} },
     { id: 'w-danmaku', type: 'danmaku', title: '直播弹幕', size: 2, visible: true, onSite: false, config: { channel: 'default' } },
     { id: 'w-comments', type: 'comments', title: '最新评论', size: 1, visible: true, onSite: false, config: {} },
     { id: 'w-visits', type: 'visits', title: '访问量统计', size: 2, visible: true, onSite: false, config: {} },
     { id: 'w-content', type: 'content', title: '内容统计', size: 1, visible: true, onSite: false, config: {} },
-    { id: 'w-note', type: 'note', title: '公告', size: 1, visible: true, onSite: false, config: { text: '欢迎使用 QYServer 控制台，可在右侧添加或拖动小组件。' } }
+    { id: 'w-note', type: 'note', title: '公告', size: 1, visible: true, onSite: true, config: { text: '欢迎使用 QYServer 控制台，可在右侧添加或拖动小组件。' } }
   ];
 }
 
@@ -39,19 +39,31 @@ function load() {
   try {
     stat = fs.statSync(FILE);
   } catch {
-    const data = { widgets: defaults() };
+    const data = { widgets: defaults(), siteWidgetsMigrated: true };
     save(data);
     return data;
   }
   if (cache.data && cache.mtime === stat.mtimeMs) return cache.data;
   try {
     const raw = JSON.parse(fs.readFileSync(FILE, 'utf8'));
-    const widgets = Array.isArray(raw.widgets) ? raw.widgets : defaults();
-    const data = { widgets: widgets.filter((item) => item && item.type).map(normalizeWidget) };
+    let widgets = (Array.isArray(raw.widgets) ? raw.widgets : defaults())
+      .filter((item) => item && item.type)
+      .map(normalizeWidget);
+    if (!raw.siteWidgetsMigrated) {
+      if (!widgets.some((widget) => widget.onSite)) {
+        widgets = widgets.map((widget) =>
+          widget.type === 'status' || widget.type === 'note' ? { ...widget, onSite: true } : widget
+        );
+      }
+      const migrated = { widgets, siteWidgetsMigrated: true };
+      save(migrated);
+      return migrated;
+    }
+    const data = { widgets, siteWidgetsMigrated: true };
     cache = { mtime: stat.mtimeMs, data };
     return data;
   } catch {
-    return { widgets: defaults() };
+    return { widgets: defaults(), siteWidgetsMigrated: true };
   }
 }
 
@@ -69,7 +81,10 @@ function normalizeWidget(item) {
 
 function save(data) {
   fs.mkdirSync(settings.DATA_DIR, { recursive: true });
-  const payload = { widgets: (data.widgets || []).map(normalizeWidget) };
+  const payload = {
+    widgets: (data.widgets || []).map(normalizeWidget),
+    siteWidgetsMigrated: data.siteWidgetsMigrated !== undefined ? Boolean(data.siteWidgetsMigrated) : true
+  };
   const tmp = `${FILE}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(payload, null, 2), 'utf8');
   fs.renameSync(tmp, FILE);

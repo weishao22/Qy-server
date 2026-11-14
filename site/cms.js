@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const cheerio = require('cheerio');
+const blocksStore = require('./layout');
 
 const ROOT = path.resolve(__dirname, '..');
 const DATA_DIR = path.join(ROOT, 'data');
@@ -18,7 +19,14 @@ const ATTR_TARGETS = [
   { selector: 'meta[name="keywords"]', attr: 'content', label: 'keywords' },
   { selector: 'meta[property="og:title"]', attr: 'content', label: 'og:title' },
   { selector: 'meta[property="og:description"]', attr: 'content', label: 'og:description' },
-  { selector: 'meta[property="og:site_name"]', attr: 'content', label: 'og:site_name' }
+  { selector: 'meta[property="og:site_name"]', attr: 'content', label: 'og:site_name' },
+  { selector: '#banner img, .carousel-item img, .welcome-image img, #content img, .content-image img, .about-content img, .gallery img, figure img', attr: 'src', label: '图片地址' },
+  { selector: '#banner img, .carousel-item img, .welcome-image img, #content img, .content-image img, .about-content img, .gallery img, figure img', attr: 'alt', label: '图片说明' },
+  { selector: '#content a[href], .content-box a[href]', attr: 'href', label: '链接地址' },
+  { selector: 'textarea', attr: 'rows', label: '文本域行数' },
+  { selector: 'textarea', attr: 'placeholder', label: '文本域提示' },
+  { selector: '#content iframe, .content-box iframe', attr: 'src', label: '嵌入地址' },
+  { selector: '#content iframe, .content-box iframe', attr: 'height', label: '嵌入高度' }
 ];
 
 let cache = { mtime: 0, data: null };
@@ -379,12 +387,33 @@ function injectEditor(html) {
 
 function injectClientRuntime(html) {
   const tags = [
+    '<link rel="stylesheet" href="/lib/qy-blocks.css" data-qy-global="1">',
+    '<script src="/lib/marked.min.js" data-qy-global="1"></script>',
     '<script src="/lib/comments-widget.js" data-qy-global="1"></script>',
     '<script src="/lib/qy-widgets.js" data-qy-global="1"></script>',
+    '<script src="/lib/qy-blocks.js" data-qy-global="1"></script>',
     '<script src="/lib/qy-nav.js" data-qy-global="1"></script>'
   ].join('\n');
-  if (/<\/head>/i.test(html)) return html.replace(/<\/head>/i, `${tags}\n</head>`);
-  return tags + html;
+  let output = /<\/head>/i.test(html) ? html.replace(/<\/head>/i, `${tags}\n</head>`) : tags + html;
+  const fallback = [
+    '<script data-qy-global="1">',
+    '(function(){',
+    'function ready(fn){if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",fn,{once:true});}else{fn();}}',
+    'function hideLoader(){var l=document.getElementById("page-loader");if(l&&l.style.display!=="none"){l.style.opacity="0";setTimeout(function(){if(l&&l.parentNode){l.parentNode.removeChild(l);}},260);}try{document.documentElement.classList.remove("qy-no-scroll");if(document.body)document.body.classList.remove("qy-no-scroll");}catch(e){}}',
+    'function buildNav(){var n=document.getElementById("menu-box");if(n)return n;if(!document.getElementById("qy-fallback-shell-style")){var s=document.createElement("style");s.id="qy-fallback-shell-style";s.textContent=".mobile-menu-btn{display:none;color:#C6CDD4;font-size:24px;cursor:pointer;padding:8px}.mobile-nav{display:none;position:absolute;top:60px;left:0;width:100%;background:rgba(255,255,255,.95);box-shadow:0 4px 15px rgba(0,0,0,.1);flex-direction:column;padding:15px 0;z-index:99}.mobile-nav.show{display:flex}.mobile-nav a{color:#5F5F5F;padding:15px 25px;font-size:18px;text-align:center}@media(max-width:768px){#desktop-nav{display:none!important}.mobile-menu-btn{display:block!important}.menu{justify-content:space-between!important}}";document.head.appendChild(s);}var d=document.createElement("div");',
+    'd.id="menu-box";d.innerHTML=\'<div class="menu"><div class="logo"><h2><a href="/"><i class="fas fa-cube"></i> QYServer</a></h2></div><div class="nav-links" id="desktop-nav"><a href="/download/"><i class="fas fa-download"></i>下载</a><a href="/search/"><i class="fas fa-search"></i>查询</a><a href="/updatelog/"><i class="fas fa-history"></i>更新</a><a href="/map/"><i class="fas fa-map"></i> 地图</a><a href="/faq/"><i class="fas fa-question-circle"></i> FAQ</a><a href="/about/"><i class="fas fa-info-circle"></i> 关于</a></div><div class="mobile-menu-btn" id="mobileMenuBtn"><i class="fas fa-bars"></i></div></div><div class="mobile-nav" id="mobileNav"><a href="/download/"><i class="fas fa-download"></i>下载</a><a href="/search/"><i class="fas fa-search"></i>查询</a><a href="/updatelog/"><i class="fas fa-history"></i>更新</a><a href="/map/"><i class="fas fa-map"></i> 地图</a><a href="/faq/"><i class="fas fa-question-circle"></i> FAQ</a><a href="/about/"><i class="fas fa-info-circle"></i> 关于</a></div>\';',
+    'document.body.insertBefore(d,document.body.firstChild);return d;}',
+    'function buildFooter(){var f=document.getElementById("footer");if(f)return f;var d=document.createElement("footer");d.id="footer";',
+    'd.innerHTML=\'<div class="footer-content"><div class="footer-section"><h3>关于我们</h3><p>QYServer是一个专注于Minecraft基岩版的生存服务器，提供稳定、有趣的游戏环境，让玩家可以自由建造、探索和社交。</p></div><div class="footer-section"><h3>快速链接</h3><div class="footer-links"><a href="/rules/"><i class="fas fa-arrow-right"></i> 服务器规则</a><a href="/command/"><i class="fas fa-arrow-right"></i> 服务器指令</a><a href="/updatelog/"><i class="fas fa-arrow-right"></i> 更新日志</a><a href="/map/"><i class="fas fa-arrow-right"></i> 网页地图</a><a href="/faq/"><i class="fas fa-arrow-right"></i> 常见问题</a><a href="/about/"><i class="fas fa-arrow-right"></i> 关于</a></div></div><div class="footer-section"><h3>联系我们</h3><div class="footer-links"><a href="mailto:qy@qyserver.cc"><i class="fas fa-envelope"></i> qy@qyserver.cc</a><a href="https://qm.qq.com/q/Ur5Pf31XMG"><i class="fab fa-qq"></i> QQ群: 1029879634</a><a href="https://discord.gg/WGcKjt7BNG"><i class="fab fa-discord"></i> Discord</a></div></div></div><div class="footer-bottom"><a href="https://github.com/weishao22/Qy-server" target="_blank">&copy; 2025-2026 QYServer 版权所有</a></div>\';',
+    'document.body.appendChild(d);return d;}',
+    'ready(function(){hideLoader();setTimeout(function(){buildNav();buildFooter();},400);});',
+    'window.addEventListener("load",hideLoader,{once:true});',
+    'setTimeout(hideLoader,2500);',
+    '})();',
+    '</script>'
+  ].join('');
+  if (/<\/body>/i.test(output)) return output.replace(/<\/body>/i, `${fallback}\n</body>`);
+  return output + fallback;
 }
 
 function injectSiteWidgets(html, sitePath) {
@@ -405,14 +434,28 @@ function stripTwikooCdn(html) {
   return html.replace(/<script\b[^>]*\bsrc=["'][^"']*twikoo[^"']*["'][^>]*>\s*<\/script>/gi, '');
 }
 
+function applyLayout(html, sitePath, blocks) {
+  const $ = cheerio.load(html);
+  const body = $('body');
+  if (!body.length) return html;
+  const content = blocksStore.renderBlocks(blocks, { sitePath });
+  body.html(`<main id="qy-blocks-page" class="qy-blocks-page">${content}</main>`);
+  return $.html();
+}
+
 function renderPage(file, options = {}) {
   const html = stripTwikooCdn(fs.readFileSync(file, 'utf8'));
   const store = loadStore();
   const sitePath = toSitePath(file);
-  let output = applyOverrides(html, sitePath, store, options);
+  const layoutBlocks = blocksStore.getLayout(sitePath);
+  let output;
+  if (layoutBlocks) {
+    output = applyLayout(html, sitePath, layoutBlocks);
+  } else {
+    output = applyOverrides(html, sitePath, store, options);
+  }
   output = injectClientRuntime(output);
-  output = injectSiteWidgets(output, sitePath);
-  if (options.editor) output = injectEditor(output);
+  if (!layoutBlocks) output = injectSiteWidgets(output, sitePath);
   return output;
 }
 
