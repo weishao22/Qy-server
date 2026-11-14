@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>QYServer 管理后台</title>
+    <link rel="stylesheet" href="/admin-assets/style.css">
+</head>
+
+<body>
+    <div id="login-view" class="login-view">
+        <form class="login-card" id="login-form" autocomplete="off">
+            <div class="login-brand">
+                <span class="login-logo">QY</span>
+                <div>
+                    <h1>QYServer 管理后台</h1>
+                    <p>一个后台，管理内容、服务与评论</p>
+                </div>
+            </div>
+            <label class="field">
+                <span>管理密码</span>
+                <input type="password" id="login-password" placeholder="请输入管理密码" required autofocus>
+            </label>
+            <p class="form-error" id="login-error" hidden></p>
+            <button type="submit" class="btn-primary" id="login-submit">登录</button>
+            <p class="login-hint">首次使用默认密码：<code>admin123</code>，登录后请立即修改。</p>
+        </form>
+    </div>
+
+    <div id="app-view" class="app-view" hidden>
+        <header class="topbar">
+            <div class="topbar-brand">
+                <span class="login-logo small">QY</span>
+                <strong>管理后台</strong>
+            </div>
+            <nav class="tabs" id="tabs">
+                <button type="button" class="tab active" data-view="dashboard">控制台</button>
+                <button type="button" class="tab" data-view="content">内容</button>
+                <button type="button" class="tab" data-view="comments">评论</button>
+                <button type="button" class="tab" data-view="settings">设置</button>
+            </nav>
+            <div class="topbar-actions">
+                <span class="stat" id="stat-overrides">0 处已修改</span>
+                <a class="btn-ghost" href="/" target="_blank" rel="noopener">查看官网</a>
+                <button class="btn-ghost" id="open-password">修改密码</button>
+                <button class="btn-ghost danger" id="logout">退出登录</button>
+            </div>
+        </header>
+
+        <section class="view" id="view-dashboard">
+            <div class="view-head">
+                <div>
+                    <h2>控制台</h2>
+                    <p class="view-sub">功能已拆成小组件：可拖动排序、随时增删，部分小组件还能显示到官网首页。</p>
+                </div>
+                <div class="view-actions">
+                    <select id="widget-type"></select>
+                    <button type="button" class="btn-primary" id="widget-add">添加小组件</button>
+                    <button type="button" class="btn-ghost" id="widget-reset">恢复默认</button>
+                </div>
+            </div>
+            <div id="widget-grid" class="widget-grid"></div>
+        </section>
+
+        <section class="view" id="view-content" hidden>
+            <div class="layout">
+                <aside class="sidebar">
+                    <div class="sidebar-head">
+                        <input type="search" id="search-input" placeholder="搜索文字内容…">
+                    </div>
+                    <nav id="page-list" class="page-list"></nav>
+                </aside>
+
+                <main class="editor">
+                    <div class="editor-head">
+                        <div>
+                            <h2 id="page-title">选择一个页面</h2>
+                            <p class="editor-meta" id="page-meta"></p>
+                        </div>
+                        <div class="editor-head-actions">
+                            <a class="btn-ghost" id="visual-link" href="/?edit=1" target="_blank" rel="noopener" hidden>页面上直接改</a>
+                            <a class="btn-ghost" id="preview-link" href="/" target="_blank" rel="noopener" hidden>预览此页</a>
+                        </div>
+                    </div>
+
+                    <div id="entries" class="entries"></div>
+                    <div class="empty-state" id="empty-state">
+                        <p>从左侧选择页面开始编辑，或直接搜索全站文字。</p>
+                    </div>
+                </main>
+            </div>
+
+            <div class="savebar" id="savebar" hidden>
+                <span id="savebar-text">有未保存的修改</span>
+                <div>
+                    <button class="btn-ghost" id="discard-all">放弃全部</button>
+                    <button class="btn-primary" id="save-all">保存修改</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="view" id="view-comments" hidden>
+            <div class="view-head">
+                <div>
+                    <h2>评论管理</h2>
+                    <p class="view-sub">本站自带的轻量评论服务，替代已失效的 Twikoo。</p>
+                </div>
+                <div class="view-actions">
+                    <input type="search" id="comment-filter" placeholder="按页面路径筛选，例如 /about/">
+                    <button type="button" class="btn-ghost" id="comment-refresh">刷新</button>
+                </div>
+            </div>
+            <div id="comment-list" class="comment-list"></div>
+        </section>
+
+        <section class="view" id="view-settings" hidden>
+            <div class="view-head">
+                <div>
+                    <h2>设置</h2>
+                    <p class="view-sub">全部保存到本站后端，无需改代码；MC 状态与弹幕已并入同一进程。</p>
+                </div>
+                <div class="view-actions">
+                    <button type="button" class="btn-primary" id="settings-save">保存设置</button>
+                </div>
+            </div>
+
+            <div class="settings-grid">
+                <form class="settings-card" id="settings-mc">
+                    <h3>Minecraft 服务器</h3>
+                    <label class="field"><span>服务器地址</span><input type="text" name="host"></label>
+                    <label class="field"><span>端口</span><input type="number" name="port" min="1" max="65535"></label>
+                    <label class="field checkbox"><input type="checkbox" name="srv"> <span>启用 SRV 解析</span></label>
+                    <label class="field"><span>记录间隔（分钟）</span><input type="number" name="recordCronMinutes" min="1" max="120"></label>
+                    <label class="field"><span>互通服（每行：名称|地址|端口）</span><textarea name="extraServers" rows="3" placeholder="Java互通|java.qyserver.top|25565"></textarea></label>
+                </form>
+
+                <form class="settings-card" id="settings-danmaku">
+                    <h3>直播弹幕</h3>
+                    <label class="field"><span>单条最大字数</span><input type="number" name="maxTextLength" min="1" max="200"></label>
+                    <label class="field"><span>发送冷却（毫秒）</span><input type="number" name="cooldownMs" min="0" max="60000"></label>
+                    <label class="field"><span>频率窗口（毫秒）</span><input type="number" name="rateWindowMs" min="1000" max="120000"></label>
+                    <label class="field"><span>窗口内最多条数</span><input type="number" name="rateWindowLimit" min="1" max="100"></label>
+                    <label class="field"><span>违禁词（每行一个）</span><textarea name="bannedWords" rows="4"></textarea></label>
+                </form>
+
+                <form class="settings-card" id="settings-comments">
+                    <h3>评论</h3>
+                    <label class="field checkbox"><input type="checkbox" name="enabled"> <span>开启评论</span></label>
+                    <label class="field checkbox"><input type="checkbox" name="requireEmail"> <span>必须填写邮箱</span></label>
+                    <label class="field"><span>发表冷却（毫秒）</span><input type="number" name="cooldownMs" min="0" max="600000"></label>
+                    <label class="field"><span>最大字数</span><input type="number" name="maxLength" min="10" max="5000"></label>
+                    <label class="field"><span>昵称最大长度</span><input type="number" name="maxNick" min="2" max="60"></label>
+                </form>
+
+                <form class="settings-card" id="settings-views">
+                    <h3>访问统计</h3>
+                    <label class="field"><span>同一 IP 计入冷却（毫秒）</span><input type="number" name="cooldownMs" min="0" max="86400000"></label>
+                    <p class="settings-tip">访问量由页脚与后台共同读取，无刷新切换页面也会更新。</p>
+                </form>
+            </div>
+        </section>
+    </div>
+
+    <div class="modal" id="password-modal" hidden>
+        <div class="modal-card">
+            <h3>修改管理密码</h3>
+            <form id="password-form" autocomplete="off">
+                <label class="field">
+                    <span>当前密码</span>
+                    <input type="password" id="pw-current" required>
+                </label>
+                <label class="field">
+                    <span>新密码（至少 6 位）</span>
+                    <input type="password" id="pw-next" minlength="6" required>
+                </label>
+                <label class="field">
+                    <span>重复新密码</span>
+                    <input type="password" id="pw-confirm" minlength="6" required>
+                </label>
+                <p class="form-error" id="pw-error" hidden></p>
+                <div class="modal-actions">
+                    <button type="button" class="btn-ghost" id="pw-cancel">取消</button>
+                    <button type="submit" class="btn-primary">确认修改</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="toast" id="toast" hidden></div>
+
+    <script src="/admin-assets/app.js"></script>
+    <script src="/admin-assets/dashboard.js"></script>
+</body>
+
+</html>

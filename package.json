@@ -1,0 +1,20 @@
+{
+  "name": "qyserver-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "QYServer 官网 Node.js 服务：静态页面托管 + 可视化文字管理后台",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "express": "^5.2.1",
+    "minecraft-server-util": "^5.4.4",
+    "ws": "^8.23.0"
+  }
+}

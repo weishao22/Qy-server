@@ -1,6 +1,6 @@
-const statusUrl = 'https://api.qyserver.top/api/status';
-const historyUrl = `https://api.qyserver.top/api/history`;
-const clusterUrl = 'https://api.qyserver.top/api/all';
+const statusUrl = '/api/status';
+const historyUrl = '/api/history';
+const clusterUrl = '/api/all';
 
 function fetchStatus() {
   fetch(statusUrl)
