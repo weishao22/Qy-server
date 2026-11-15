@@ -21,6 +21,7 @@
 
     var nativeSetTimeout = window.setTimeout;
     var nativeSetInterval = window.setInterval;
+    var nativeAddEventListener = window.EventTarget.prototype.addEventListener;
 
     var state = {
         contentNodes: [],
@@ -102,7 +103,7 @@
             return !node.hasAttribute('data-qy-global');
         });
         state.pageLinks = Array.prototype.slice.call(document.head.querySelectorAll('link[rel="stylesheet"]')).filter(function (node) {
-            return !GLOBAL_CSS.some(function (re) { return re.test(node.href); });
+            return !node.hasAttribute('data-qy-global') && !GLOBAL_CSS.some(function (re) { return re.test(node.href); });
         });
         state.loadedScripts = new Set();
         document.querySelectorAll('script[src]').forEach(function (node) {
@@ -128,7 +129,7 @@
     }
 
     function trackedAddEventListener(target, type, listener, options) {
-        target.addEventListener(type, listener, options);
+        nativeAddEventListener.call(target, type, listener, options);
         state.listeners.push([target, type, listener, options]);
     }
 
@@ -211,23 +212,31 @@
             }
         });
 
-        var styles = doc.head.querySelectorAll('style');
-        for (var i = 0; i < styles.length; i += 1) {
-            var node = document.createElement('style');
-            node.textContent = styles[i].textContent;
-            document.head.appendChild(node);
-            state.pageStyles.push(node);
-        }
-        var links = doc.head.querySelectorAll('link[rel="stylesheet"]');
-        for (var j = 0; j < links.length; j += 1) {
-            var href = links[j].getAttribute('href') || '';
-            var resolved = new URL(href, location.origin + doc.__qyPath).href;
-            if (GLOBAL_CSS.some(function (re) { return re.test(resolved); })) continue;
-            var link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = resolved;
-            document.head.appendChild(link);
-            state.pageLinks.push(link);
+        // Preserve the destination's cascade order, including retained global CSS.
+        var styles = doc.head.querySelectorAll('style, link[rel="stylesheet"]');
+        var currentLinks = Array.prototype.slice.call(document.head.querySelectorAll('link[rel="stylesheet"]'));
+        var anchor = null;
+        for (var i = styles.length - 1; i >= 0; i -= 1) {
+            var source = styles[i];
+            var resolved = source.tagName === 'LINK'
+                ? new URL(source.getAttribute('href'), location.origin + doc.__qyPath).href : null;
+            var global = source.hasAttribute('data-qy-global') ||
+                (resolved && GLOBAL_CSS.some(function (re) { return re.test(resolved); }));
+            if (global) {
+                if (resolved) {
+                    anchor = currentLinks.find(function (link) { return link.href === resolved; }) || anchor;
+                }
+                continue;
+            }
+            var node = document.importNode(source, true);
+            if (resolved) {
+                node.href = resolved;
+                state.pageLinks.push(node);
+            } else {
+                state.pageStyles.push(node);
+            }
+            document.head.insertBefore(node, anchor);
+            anchor = node;
         }
     }
 
@@ -384,6 +393,7 @@
                 headers: { 'X-QY-Navigate': '1' }
             });
             if (!response.ok) throw new Error('HTTP ' + response.status);
+            url = new URL(response.url || url.href);
             var htmlText = await response.text();
             var doc = new DOMParser().parseFromString(htmlText, 'text/html');
             doc.__qyPath = url.pathname + url.search;
