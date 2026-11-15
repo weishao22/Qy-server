@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { statusBedrock } = require('minecraft-server-util');
+const { statusBedrock, status: statusJava } = require('minecraft-server-util');
 const settings = require('../settings');
 
 const HISTORY_FILE = path.join(settings.DATA_DIR, 'status-history.json');
@@ -63,23 +63,43 @@ function scheduleSave() {
   }, 1500);
 }
 
-async function queryServer(host, port, srv) {
-  const result = await statusBedrock(host, port, { timeout: 8000, enableSRV: srv !== false });
-  return result;
+async function queryBedrock(host, port, srv) {
+  return statusBedrock(host, port, { timeout: 8000, enableSRV: srv !== false });
 }
 
-async function checkServer(host, port, srv) {
-  try {
-    const data = await queryServer(host, port, srv);
-    return { success: true, data };
-  } catch (error) {
-    return { success: false, error: error.message };
+async function queryJava(host, port) {
+  return statusJava(host, port, { timeout: 8000 });
+}
+
+async function checkServer(host, port, srv, type) {
+  const tasks = [];
+  const proto = String(type || '').toLowerCase();
+  if (proto === 'java') {
+    tasks.push(() => queryJava(host, port));
+  } else if (proto === 'bedrock') {
+    tasks.push(() => queryBedrock(host, port, srv));
+  } else {
+    // 未指定类型：按端口猜测，失败再换另一种协议
+    const n = Number(port) || 0;
+    const javaFirst = n === 25565 || n === 25564;
+    const first = javaFirst ? () => queryJava(host, port) : () => queryBedrock(host, port, srv);
+    const second = javaFirst ? () => queryBedrock(host, port, srv) : () => queryJava(host, port);
+    tasks.push(first, second);
   }
+  let lastError = null;
+  for (const task of tasks) {
+    try {
+      return { success: true, data: await task() };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  return { success: false, error: lastError ? lastError.message : 'unknown' };
 }
 
 async function fetchStatus() {
   const config = settings.mc();
-  const result = await checkServer(config.host, config.port, config.srv);
+  const result = await checkServer(config.host, config.port, config.srv, 'bedrock');
   if (!result.success) {
     return { online: false, error: result.error, updatedAt: new Date().toISOString() };
   }
@@ -100,7 +120,7 @@ async function fetchStatus() {
 
 async function record() {
   const config = settings.mc();
-  const result = await checkServer(config.host, config.port, config.srv);
+  const result = await checkServer(config.host, config.port, config.srv, 'bedrock');
   const time = new Date().toISOString();
   history.push(
     result.success
@@ -119,12 +139,12 @@ async function record() {
 async function cluster() {
   const config = settings.mc();
   const servers = [
-    { name: config.host, host: config.host, port: config.port, srv: config.srv },
+    { name: config.host, host: config.host, port: config.port, srv: config.srv, type: 'bedrock' },
     ...(Array.isArray(config.extraServers) ? config.extraServers : [])
   ].slice(0, 12);
   const results = await Promise.all(
     servers.map(async (server) => {
-      const result = await checkServer(server.host, server.port, server.srv);
+      const result = await checkServer(server.host, server.port, server.srv, server.type);
       if (!result.success) {
         return {
           server: server.name || `${server.host}:${server.port}`,

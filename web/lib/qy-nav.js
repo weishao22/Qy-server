@@ -261,6 +261,41 @@
         }
     }
 
+    // SPA 场景下 DOMContentLoaded / load 已触发过，页面脚本里的
+    // document.addEventListener('DOMContentLoaded', fn) / window.addEventListener('load', fn)
+    // 不会再次触发，导致数据列表一直卡在“加载中”。
+    // 执行页面脚本时临时把这两类监听改为立即执行，执行完立即恢复。
+    function runScriptWithReadyShim(source, label) {
+        var docAdd = document.addEventListener;
+        var winAdd = window.addEventListener;
+        var restored = false;
+        function restore() {
+            if (restored) return;
+            restored = true;
+            document.addEventListener = docAdd;
+            window.addEventListener = winAdd;
+        }
+        document.addEventListener = function (type, listener, opts) {
+            if ((type === 'DOMContentLoaded' || type === 'load') && typeof listener === 'function' && document.readyState !== 'loading') {
+                try { listener.call(document, new Event(type)); } catch (e) { console.warn(e); }
+                return;
+            }
+            return docAdd.call(document, type, listener, opts);
+        };
+        window.addEventListener = function (type, listener, opts) {
+            if ((type === 'load' || type === 'DOMContentLoaded') && typeof listener === 'function') {
+                try { listener.call(window, new Event(type)); } catch (e) { console.warn(e); }
+                return;
+            }
+            return winAdd.call(window, type, listener, opts);
+        };
+        try {
+            runScriptSource(source, label);
+        } finally {
+            restore();
+        }
+    }
+
     function fetchScriptText(src) {
         return fetch(src, { credentials: 'same-origin' }).then(function (response) {
             if (!response.ok) throw new Error('HTTP ' + response.status);
@@ -287,7 +322,7 @@
                 try {
                     var source = await fetchScriptText(absolute);
                     withScope(function () {
-                        runScriptSource(source, absolute);
+                        runScriptWithReadyShim(source, absolute);
                     });
                 } catch (error) {
                     console.warn('[qy-nav] 加载脚本失败:', absolute, error);
@@ -298,7 +333,7 @@
             var code = node.textContent || '';
             if (!code.trim()) continue;
             withScope(function () {
-                runScriptSource(code, pageUrl + '#inline-' + i);
+                runScriptWithReadyShim(code, pageUrl + '#inline-' + i);
             });
         }
     }
@@ -329,7 +364,7 @@
     async function navigate(href, options) {
         options = options || {};
         var url = new URL(href, location.href);
-        if (url.pathname === location.pathname && url.search === location.search) return;
+        if (!options.force && url.pathname === location.pathname && url.search === location.search) return;
 
         if (state.navigating) {
             state.queued = { href: url.href, options: options };
@@ -403,7 +438,7 @@
         });
 
         window.addEventListener('popstate', function () {
-            navigate(location.href, { push: false });
+            navigate(location.href, { push: false, force: true });
         });
 
         if (window.QYComments) {

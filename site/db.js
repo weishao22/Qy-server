@@ -151,9 +151,10 @@ function seedFromJson() {
     try {
       const data = JSON.parse(fs.readFileSync(full, 'utf8'));
       let items = [];
+      let single = false;
       if (Array.isArray(data)) {
         items = data;
-      } else if (data.items) {
+      } else if (Array.isArray(data.items)) {
         items = data.items;
       } else if (data.categories && Array.isArray(data.categories)) {
         // 嵌套结构：{ categories: [{ items/commands: [...] }] }
@@ -161,13 +162,17 @@ function seedFromJson() {
           const catItems = cat.items || cat.commands || [];
           items.push(...catItems);
         });
-      } else if (data.timeline) {
+      } else if (Array.isArray(data.timeline)) {
         items = data.timeline;
+      } else {
+        // 对象型配置（如弹窗公告）：整体存为一条
+        single = true;
+        items = [data];
       }
       items.forEach((item, i) => {
         upsert({
           type,
-          key: item.key || item.name || item.title || `${type}-${i}`,
+          key: single ? 'main' : `${type}-${i}`,
           title: item.title || item.name || '',
           description: item.description || item.desc || item.text || '',
           value: JSON.stringify(item),

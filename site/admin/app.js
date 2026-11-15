@@ -684,13 +684,29 @@ if (commentProviderForm) {
 function linesToLinks(text) {
     return text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line) => {
         const parts = line.split('|').map((item) => item.trim());
-        if (parts.length >= 3) return { name: parts[0], host: parts[1], port: Number(parts[2]) || 19132, srv: true };
-        return { name: parts[0], host: parts[0], port: Number(parts[1]) || 19132, srv: true };
+        const typeRaw = (parts[3] || '').toLowerCase();
+        const type = (typeRaw === 'java' || typeRaw === 'bedrock') ? typeRaw : '';
+        let name = parts[0] || '';
+        let host = parts[0] || '';
+        let portRaw = 0;
+        if (parts.length >= 3) {
+            name = parts[0];
+            host = parts[1];
+            portRaw = Number(parts[2]);
+        } else if (parts.length === 2) {
+            name = parts[0];
+            host = parts[1];
+        }
+        const defaultPort = type === 'java' || (!type && /java/i.test(host)) ? 25565 : 19132;
+        return { name, host, port: portRaw > 0 ? portRaw : defaultPort, srv: true, type };
     });
 }
 
 function linksToLines(list) {
-    return (list || []).map((item) => `${item.name || item.host}|${item.host}|${item.port}`).join('\n');
+    return (list || []).map((item) => {
+        const base = `${item.name || item.host}|${item.host}|${item.port}`;
+        return item.type ? `${base}|${item.type}` : base;
+    }).join('\n');
 }
 
 async function loadSettings() {
@@ -929,8 +945,10 @@ const DB_SCHEMAS = {
         { key: 'icon', label: '图标（如 fa-terminal）', type: 'text' }
     ],
     popup_announcement: [
+        { key: 'popupVersion', label: '公告版本号（改数字可让所有人重新看到弹窗）', type: 'text' },
         { key: 'title', label: '标题', type: 'text' },
-        { key: 'content', label: '内容', type: 'textarea', rows: 4 }
+        { key: 'buttonText', label: '按钮文字', type: 'text' },
+        { key: 'content', label: '内容（HTML，每段一行）', type: 'textarea', rows: 12 }
     ],
     faq_item: [
         { key: 'id', label: '编号（如 001）', type: 'text' },

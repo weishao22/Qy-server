@@ -7,7 +7,7 @@
     <meta name="description" content="QYServer 全站导航，快速访问下载、查询、地图、更新日志、图廊等所有板块">
     <meta name="keywords" content="QYServer,导航,站点地图,我的世界,基岩版">
     <title>QYServer | 导航</title>
-    <link rel="alternate" type="application/json" href="/Configs/nav.json" title="QYServer 站点导航元数据" />
+
     <link rel="stylesheet" href="/lib/all.css">
     <script>
         window.__disablePageLoader = true;
@@ -240,12 +240,17 @@
                 
                 if (!container) return;
 
-                // 数据库中 nav_item 类型的 value 存储完整的 nav.json 结构
-                let raw = {};
-                if (data.items && data.items.length) {
-                    try { raw = JSON.parse(data.items[0].value || '{}'); } catch { raw = {}; }
+                const items = (data.items || []).map(it => { try { return JSON.parse(it.value || '{}'); } catch { return {}; } }).filter(Boolean);
+                let categories;
+                if (items.length && items[0].categories) {
+                    categories = items[0].categories;
+                } else {
+                    categories = [{ name: '网站导航', items: items.filter(it => it && it.url) }];
                 }
-                const categories = raw.categories || [];
+                if (!categories.length || !categories.some(c => (c.items || []).length)) {
+                    container.innerHTML = '<p style="text-align:center;padding:2em;">暂无导航数据</p>';
+                    return;
+                }
 
                 container.innerHTML = categories.map(cat => `
                     <div class="nav-section">

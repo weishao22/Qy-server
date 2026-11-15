@@ -29,9 +29,12 @@ window.addEventListener('scroll', function () {
 });
 
 function loadChangelog() {
-    fetch('/Configs/updata.json?t=' + Date.now())
+    fetch('/api/content/changelog_entry?t=' + Date.now())
         .then(res => res.json())
-        .then(data => {
+        .then(payload => {
+            const data = (payload.items || []).map(it => {
+                try { return JSON.parse(it.value || '{}'); } catch (e) { return {}; }
+            }).filter(it => it && (it.date || it.title || it.content));
             const list = document.getElementById('changelog-list');
             if (!list) return;
             if (!data || !data.length) {

@@ -205,7 +205,7 @@
                     <label class="field"><span>端口</span><input type="number" name="port" min="1" max="65535"></label>
                     <label class="field checkbox"><input type="checkbox" name="srv"> <span>启用 SRV 解析</span></label>
                     <label class="field"><span>记录间隔（分钟）</span><input type="number" name="recordCronMinutes" min="1" max="120"></label>
-                    <label class="field"><span>JAVA 服务器（每行：名称|地址|端口）</span><textarea name="extraServers" rows="3" placeholder="JAVA服务器|java.qyserver.top|25565"></textarea></label>
+                    <label class="field"><span>额外服务器（每行：名称|地址|端口|类型），类型填 java 或 bedrock，可省略自动识别</span><textarea name="extraServers" rows="3" placeholder="JAVA|java.qyserver.top|25565|java"></textarea></label>
                 </form>
 
                 <form class="settings-card" id="settings-danmaku">

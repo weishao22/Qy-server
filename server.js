@@ -439,6 +439,16 @@ app.get('/api/content/:type', (req, res) => {
   res.json({ type, items: rows });
 });
 
+app.get('/api/popup', (req, res) => {
+  const rows = contentDb.list('popup_announcement');
+  let obj = {};
+  if (rows[0]) {
+    try { obj = JSON.parse(rows[0].value); } catch { obj = {}; }
+  }
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(obj);
+});
+
 app.get('/api/admin/content', requireAuth, (req, res) => {
   ensureSeeded();
   const type = req.query.type;
@@ -752,12 +762,17 @@ function pickSettings(body) {
     if (src.mc.srv !== undefined) mc.srv = Boolean(src.mc.srv);
     if (src.mc.recordCronMinutes !== undefined) mc.recordCronMinutes = Math.max(1, Math.min(120, Number(src.mc.recordCronMinutes) || 2));
     if (Array.isArray(src.mc.extraServers)) {
-      mc.extraServers = src.mc.extraServers.slice(0, 12).map((item) => ({
-        name: String((item && item.name) || '').slice(0, 60),
-        host: String((item && item.host) || '').slice(0, 120),
-        port: Math.max(1, Math.min(65535, Number(item && item.port) || 19132)),
-        srv: !(item && item.srv === false)
-      })).filter((item) => item.host);
+      mc.extraServers = src.mc.extraServers.slice(0, 12).map((item) => {
+        const rawType = String((item && item.type) || '').toLowerCase();
+        const type = rawType === 'java' || rawType === 'bedrock' ? rawType : '';
+        return {
+          name: String((item && item.name) || '').slice(0, 60),
+          host: String((item && item.host) || '').slice(0, 120),
+          port: Math.max(1, Math.min(65535, Number(item && item.port) || 19132)),
+          srv: !(item && item.srv === false),
+          type
+        };
+      }).filter((item) => item.host);
     }
     out.mc = mc;
   }
@@ -958,34 +973,10 @@ app.get(/^\/(?!api\/|admin\/?$|admin-assets\/).*/, (req, res, next) => {
   }
 });
 
-/* ---------------- 可编辑数据文件（现已迁至内容数据库，兼容旧路径） ---------------- */
-
-const CONFIG_TO_TYPE = {
-  '/Configs/images.json': 'gallery_image',
-  '/Configs/updata.json': 'changelog_entry',
-  '/Configs/timeline.json': 'timeline_entry',
-  '/Configs/nav.json': 'nav_item',
-  '/Configs/commands.json': 'command',
-  '/Configs/dontShowPopup.json': 'popup_announcement'
-};
+/* ---------------- 旧 /Configs/*.json 路径已弃用，数据统一走 /api/content 与 /api/popup ---------------- */
 
 app.get(/^\/Configs\/.+/, (req, res, next) => {
-  const type = CONFIG_TO_TYPE[req.path];
-  if (!type) {
-    next();
-    return;
-  }
-  try {
-    const rows = contentDb.list(type);
-    const items = rows.map((r) => {
-      try { return JSON.parse(r.value || '{}'); } catch { return {}; }
-    }).filter(Boolean);
-    res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-store');
-    res.json(items);
-  } catch (error) {
-    next(error);
-  }
+  next();
 });
 
 app.get(/^\/(web\/)?(lib|live|search|updatelog|tools)\/.+\.js$/, (req, res, next) => {
@@ -1018,7 +1009,16 @@ app.use(
   })
 );
 
-app.use(express.static(WEB_DIR, { index: false }));
+app.use(express.static(WEB_DIR, {
+  index: false,
+  setHeaders(res, filePath) {
+    if (/\.(js|css)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    } else if (/\.(woff2?|ttf|svg|png|jpe?g|webp|gif|ico|mp3|mp4|webm)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=604800');
+    }
+  }
+}));
 
 app.use((req, res) => {
   const file = path.join(ROOT, '404.html');
@@ -1197,6 +1197,5 @@ server.listen(PORT, HOST, () => {
   if (auth.mustChangePassword()) {
     console.log('首次使用请用默认密码 admin123 登录，并立即修改密码。');
   }
-  contentDb.seedFromJson();
-  console.log('[db] 内容数据库已初始化，已从 JSON 文件种子数据');
+  console.log('[db] 内容数据库 data/content.db 已就绪（唯一数据源，不再使用 JSON 文件）');
 });

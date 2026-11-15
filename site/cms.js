@@ -10,7 +10,7 @@ const ROOT = path.resolve(__dirname, '..');
 const DATA_DIR = path.join(ROOT, 'data');
 const CONTENT_FILE = path.join(DATA_DIR, 'content.json');
 
-const SKIP_DIRS = new Set(['node_modules', '.git', '.kilo', 'data', 'site', 'server', 'web', '.vscode']);
+const SKIP_DIRS = new Set(['node_modules', '.git', '.kilo', 'data', 'site', 'server', '.vscode']);
 const SKIP_TAGS = new Set(['script', 'style', 'noscript', 'template', 'code', 'pre']);
 const SHELL_IDS = ['menu-box', 'footer', 'page-loader'];
 
@@ -77,7 +77,8 @@ function walkHtml(dir = ROOT, out = []) {
 }
 
 function toSitePath(file) {
-  const rel = path.relative(ROOT, file).split(path.sep).join('/');
+  let rel = path.relative(ROOT, file).split(path.sep).join('/');
+  if (rel.startsWith('web/')) rel = rel.slice(4);
   if (rel === 'index.html') return '/';
   if (rel.endsWith('/index.html')) return `/${rel.slice(0, -'index.html'.length)}`;
   return `/${rel}`;
@@ -436,32 +437,36 @@ function stripTwikooCdn(html) {
 }
 
 function applyLayout(html, sitePath, blocks) {
+  if (!blocks || !blocks.length) return html;
   const $ = cheerio.load(html);
   const body = $('body');
   if (!body.length) return html;
   const GLOBAL_JS = /\/lib\/(AllComponents\.js|all\.js|qy-nav\.js|qy-widgets\.js|qy-blocks\.js|comments-widget\.js|marked\.min\.js)(\?|$)/;
   const keepScripts = [];
-  if (blocks && blocks.length) {
-    body.find('script').each((_, el) => {
-      const $el = $(el);
-      if ($el.attr('data-qy-global') !== undefined) return;
-      const src = $el.attr('src');
-      if (src && GLOBAL_JS.test(src)) return;
-      keepScripts.push($.html(el));
-    });
-  }
+  body.find('script').each((_, el) => {
+    const $el = $(el);
+    if ($el.attr('data-qy-global') !== undefined) return;
+    const src = $el.attr('src');
+    if (src && GLOBAL_JS.test(src)) return;
+    keepScripts.push($.html(el));
+  });
   const content = blocksStore.renderBlocks(blocks || [], { sitePath });
   body.html(`<main id="qy-blocks-page" class="qy-blocks-page">${content}</main>`);
   if (keepScripts.length) body.append(keepScripts.join('\n'));
   return $.html();
 }
 
+const FORCE_STATIC_PATHS = new Set([
+  '/gallery/detail.html',
+  '/faq/', '/faq', '/faq/problem.html'
+]);
+
 function renderPage(file, options = {}) {
   const html = stripTwikooCdn(fs.readFileSync(file, 'utf8'));
-  const sitePath = toSitePath(file);
-  const blocks = blocksStore.getLayout(sitePath) || [];
-  let output = applyLayout(html, sitePath, blocks);
-  output = injectClientRuntime(output);
+  // 重要：区块覆盖会替换整页 body，并丢弃 AllComponents.js 等脚本，
+  // 导致导航、轮播、弹窗、图廊详情、更新日志等原版功能全部失效。
+  // 这里停用区块覆盖，直接输出原版静态页面；页面数据统一由数据库 API 提供。
+  let output = injectClientRuntime(html);
   return output;
 }
 

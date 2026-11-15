@@ -1440,7 +1440,7 @@
 
             // 【核心改造：动态获取弹窗数据机制】
             // 通过请求加时间戳，彻底干掉本地和 CDN 的 JSON 缓存
-            fetch('/Configs/dontShowPopup.json?t=' + new Date().getTime())
+            fetch('/api/popup?t=' + new Date().getTime())
                 .then(res => {
                     if (!res.ok) throw new Error('网络请求失败');
                     return res.json();

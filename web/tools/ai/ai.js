@@ -9,8 +9,8 @@
 
     // ==================== 配置 ====================
     const config = {
-        apiUrl: 'https://api.qyserver.top/api/ai/stream',
-        // apiUrl: 'http://localhost:3001/api/ai/stream',  // 本地测试用
+        apiUrl: '/api/ai/stream',
+        // 同源：由本站服务器 /api/ai/stream 代理转发，不再直连外部域名
         maxHistoryChars: 2000,
         timeout: 60000,
     };

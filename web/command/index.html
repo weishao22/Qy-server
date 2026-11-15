@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QYServer | 指令</title>
-    <link rel="alternate" type="application/json" href="/Configs/commands.json" title="QYServer 服务器指令元数据" />
+
     <link rel="stylesheet" href="/lib/all.css">
     <script src="/lib/AllComponents.js"></script>
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
@@ -306,12 +306,17 @@
 
                     if (!container) return;
 
-                    // 数据库中 command 类型的 value 存储完整的 commands.json 结构
-                    let raw = {};
-                    if (data.items && data.items.length) {
-                        try { raw = JSON.parse(data.items[0].value || '{}'); } catch { raw = {}; }
+                    const items = (data.items || []).map(it => { try { return JSON.parse(it.value || '{}'); } catch { return {}; } }).filter(Boolean);
+                    let categories;
+                    if (items.length && items[0].categories) {
+                        categories = items[0].categories;
+                    } else {
+                        categories = [{ name: '全部指令', commands: items.filter(c => c && c.name) }];
                     }
-                    const categories = raw.categories || [];
+                    if (!categories.length || !categories.some(c => (c.commands || []).length)) {
+                        container.innerHTML = '<p style="text-align:center;padding:2em;">暂无指令数据</p>';
+                        return;
+                    }
 
                     container.innerHTML = categories.map(category => `
                             <div class="command-category">
