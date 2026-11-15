@@ -8,17 +8,17 @@ const cheerio = require('cheerio');
 const ROOT = path.resolve(__dirname, '..');
 
 const HTML_TEMPLATES = [
-  { file: 'lib/AllComponents.js', label: '全站外壳（导航栏 / 页脚 / 加载动画）', templates: ['navbarHTML', 'footerHTML', 'loaderHTML', 'musicHTML'] }
+  { file: 'web/lib/AllComponents.js', label: '全站外壳（导航栏 / 页脚 / 加载动画）', templates: ['navbarHTML', 'footerHTML', 'loaderHTML', 'musicHTML'] }
 ];
 
 const SCRIPT_FILES = [
-  { file: 'lib/all.js', label: '全站脚本提示文字' },
-  { file: 'live/danmaku.js', label: '直播间弹幕提示文字' },
-  { file: 'live/video-player.js', label: '直播播放器界面文字' },
-  { file: 'search/assets/status.js', label: '状态查询界面文字' },
-  { file: 'updatelog/main.js', label: '更新日志界面文字' },
-  { file: 'tools/ai/ai.js', label: 'AI 助手界面文字' },
-  { file: 'lib/easter-eggs.js', label: '彩蛋文字' }
+  { file: 'web/lib/all.js', label: '全站脚本提示文字' },
+  { file: 'web/live/danmaku.js', label: '直播间弹幕提示文字' },
+  { file: 'web/live/video-player.js', label: '直播播放器界面文字' },
+  { file: 'web/search/assets/status.js', label: '状态查询界面文字' },
+  { file: 'web/updatelog/main.js', label: '更新日志界面文字' },
+  { file: 'web/tools/ai/ai.js', label: 'AI 助手界面文字' },
+  { file: 'web/lib/easter-eggs.js', label: '彩蛋文字' }
 ];
 
 function hashKey(value) {
@@ -28,7 +28,7 @@ function hashKey(value) {
 function safeFile(relFile) {
   const normalized = path.posix.normalize(relFile).replace(/^\/+/, '');
   if (normalized.includes('..') || normalized.startsWith('/')) return null;
-  if (!/^(lib|live|search|updatelog|tools)\//.test(normalized)) return null;
+  if (!/^(web\/)?(lib|live|search|updatelog|tools)\//.test(normalized)) return null;
   const full = path.join(ROOT, normalized.split('/').join(path.sep));
   if (!full.startsWith(ROOT)) return null;
   return full;

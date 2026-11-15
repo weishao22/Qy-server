@@ -297,19 +297,26 @@
         </section>
 
         <script>
-            // 加载指令配置并渲染
+            // 加载指令配置并渲染（从内容数据库 API 读取）
             async function loadCommands() {
                 try {
-                    const response = await fetch('/Configs/commands.json');
+                    const response = await fetch('/api/content/command?t=' + Date.now());
                     const data = await response.json();
                     const container = document.querySelector('.command-container');
 
                     if (!container) return;
 
-                    container.innerHTML = data.categories.map(category => `
+                    // 数据库中 command 类型的 value 存储完整的 commands.json 结构
+                    let raw = {};
+                    if (data.items && data.items.length) {
+                        try { raw = JSON.parse(data.items[0].value || '{}'); } catch { raw = {}; }
+                    }
+                    const categories = raw.categories || [];
+
+                    container.innerHTML = categories.map(category => `
                             <div class="command-category">
                                 <h3>${escapeHtml(category.name)}</h3>
-                                ${category.commands.map(cmd => `
+                                ${(category.commands || []).map(cmd => `
                                     <div class="command-item">
                                         <div class="command-header">
                                         <div class="command-icon">

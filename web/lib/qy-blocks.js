@@ -116,6 +116,173 @@
         document.body.classList.remove('qy-edit-mode');
     }
 
+    /* ---------------- 数据区块（更新日志 / 指令 / 导航 / 历程 / 图廊） ---------------- */
+
+    var dataCache = {};
+
+    function fetchJson(url) {
+        if (!dataCache[url]) {
+            dataCache[url] = fetch(url + '?t=' + Date.now(), { credentials: 'same-origin' })
+                .then(function (r) { return r.json(); });
+        }
+        return dataCache[url];
+    }
+
+    function dataDone(node, html) {
+        node.innerHTML = html;
+        node.setAttribute('data-qy-data-done', '1');
+    }
+
+    function dataFail(node, message) {
+        dataDone(node, '<div class="qy-data-empty">' + esc(message) + '</div>');
+    }
+
+    function renderChangelog(node, limit) {
+        fetchJson('/api/content/changelog_entry').then(function (data) {
+            var list = (data.items || []).map(function (item) {
+                try { return JSON.parse(item.value || '{}'); } catch { return {}; }
+            }).filter(function (item) { return item.date || item.title || item.content; });
+            if (!list.length) return dataFail(node, '暂无更新日志');
+            var rows = limit > 0 ? list.slice(0, limit) : list;
+            dataDone(node, '<div class="qy-changelog">' + rows.map(function (item) {
+                var content = Array.isArray(item.content) ? item.content.join('\n') : String(item.content || '');
+                var html = content.replace(/\n/g, '<br>').replace(/&lt;img(.*?)&gt;/g, '<img$1>');
+                return '<div class="qy-changelog-item">' +
+                    '<div class="qy-changelog-date">' + esc(item.date || '') + '</div>' +
+                    '<div class="qy-changelog-title">' + esc(item.title || '') + '</div>' +
+                    '<div class="qy-changelog-content">' + html + '</div></div>';
+            }).join('') + '</div>');
+        }).catch(function () { dataFail(node, '无法加载更新日志'); });
+    }
+
+    function renderCommands(node) {
+        fetchJson('/api/content/command').then(function (data) {
+            var raw = {};
+            if (data.items && data.items.length) {
+                try { raw = JSON.parse(data.items[0].value || '{}'); } catch { raw = {}; }
+            }
+            var categories = (raw && raw.categories) || [];
+            if (!categories.length) return dataFail(node, '暂无指令数据');
+            dataDone(node, categories.map(function (cat) {
+                return '<div class="qy-cmd-group"><h4>' + esc(cat.name || '') + '</h4><ul>' +
+                    (cat.commands || []).map(function (cmd) {
+                        return '<li><code>' + esc(cmd.name || '') + '</code>' +
+                            '<span>' + esc(cmd.description || '') + '</span>' +
+                            (cmd.usage ? '<em>' + esc(cmd.usage) + '</em>' : '') + '</li>';
+                    }).join('') + '</ul></div>';
+            }).join(''));
+        }).catch(function () { dataFail(node, '无法加载指令数据'); });
+    }
+
+    function renderNavData(node) {
+        fetchJson('/api/content/nav_item').then(function (data) {
+            var raw = {};
+            if (data.items && data.items.length) {
+                try { raw = JSON.parse(data.items[0].value || '{}'); } catch { raw = {}; }
+            }
+            var categories = (raw && raw.categories) || [];
+            if (!categories.length) return dataFail(node, '暂无导航数据');
+            dataDone(node, categories.map(function (cat) {
+                return '<div class="qy-navdata-group"><h4>' + esc(cat.name || '') + '</h4>' +
+                    (cat.subtitle ? '<p>' + esc(cat.subtitle) + '</p>' : '') +
+                    '<div class="qy-navdata-grid">' + (cat.items || []).map(function (item) {
+                        return '<a class="qy-navdata-item" href="' + esc(item.url || '#') + '">' +
+                            '<i class="' + esc(item.icon || 'fas fa-link') + '"></i>' +
+                            '<strong>' + esc(item.title || '') + '</strong>' +
+                            '<span>' + esc(item.description || '') + '</span></a>';
+                    }).join('') + '</div></div>';
+            }).join(''));
+        }).catch(function () { dataFail(node, '无法加载导航数据'); });
+    }
+
+    function renderTimelineData(node) {
+        fetchJson('/api/content/timeline_entry').then(function (data) {
+            var items = (data.items || []).map(function (item) {
+                try { return JSON.parse(item.value || '{}'); } catch { return {}; }
+            }).filter(function (item) { return item.date || item.description || item.title; });
+            if (!items.length) return dataFail(node, '暂无历程数据');
+            dataDone(node, '<div class="qy-timeline">' + items.map(function (item) {
+                return '<div class="qy-timeline-item"><div class="qy-timeline-date">' + esc(item.date || '') + '</div>' +
+                    '<div class="qy-timeline-body">' + (item.title ? '<h3>' + esc(item.title) + '</h3>' : '') +
+                    '<p>' + esc(item.description || item.text || '') + '</p></div></div>';
+            }).join('') + '</div>');
+        }).catch(function () { dataFail(node, '无法加载历程数据'); });
+    }
+
+    function renderGalleryData(node, limit) {
+        fetchJson('/api/content/gallery_image').then(function (data) {
+            var list = (data.items || []).map(function (item) {
+                try { return JSON.parse(item.value || '{}'); } catch { return {}; }
+            }).filter(function (img) { return img.imageUrl || img.thumbnailUrl; });
+            if (!list.length) return dataFail(node, '暂无图片');
+            var rows = limit > 0 ? list.slice(0, limit) : list;
+            dataDone(node, '<div class="qy-gallery">' + rows.map(function (img) {
+                var src = img.thumbnailUrl || img.imageUrl || '';
+                if (!src) return '';
+                return '<figure><a href="' + esc(img.imageUrl || src) + '" target="_blank" rel="noopener">' +
+                    '<img src="' + esc(src) + '" alt="' + esc(img.title || '') + '" loading="lazy"></a>' +
+                    (img.title ? '<figcaption>' + esc(img.title) + '</figcaption>' : '') + '</figure>';
+            }).join('') + '</div>');
+        }).catch(function () { dataFail(node, '无法加载图片'); });
+    }
+
+    /* ---------------- 在线人数图表 ---------------- */
+
+    var chartCache = {};
+
+    function renderChart(node) {
+        if (node.getAttribute('data-qy-chart-done') === '1') return;
+        var hours = Number(node.getAttribute('data-hours')) || 2;
+        node.setAttribute('data-qy-chart-done', '1');
+        if (!window.Chart) {
+            var script = document.createElement('script');
+            script.src = '/lib/chart.min.js';
+            script.onload = function () { renderChart(node); };
+            script.onerror = function () { dataFail(node, '图表库加载失败'); };
+            document.head.appendChild(script);
+            return;
+        }
+        fetchJson('/api/history?t=' + Date.now()).then(function (rows) {
+            if (!Array.isArray(rows) || !rows.length) {
+                dataFail(node, '暂无历史记录');
+                return;
+            }
+            var list = rows.slice(-hours * 30);
+            var ctx = node.getContext('2d');
+            var dpr = window.devicePixelRatio || 1;
+            var rect = node.getBoundingClientRect();
+            node.width = Math.max(200, rect.width * dpr);
+            node.height = Math.max(80, rect.height * dpr);
+            ctx.scale(dpr, dpr);
+            ctx.clearRect(0, 0, node.width / dpr, node.height / dpr);
+            var labels = list.map(function (r) { return r.time ? r.time.slice(11, 16) : ''; });
+            var values = list.map(function (r) { return Number(r.online) || 0; });
+            var max = Math.max(1, Math.max.apply(null, values));
+            new Chart(ctx, {
+                type: 'line',
+                data: { labels: labels, datasets: [{ label: '在线人数', data: values, borderColor: '#f0789d', backgroundColor: 'rgba(248,165,194,0.15)', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, title: { display: false } }, scales: { x: { display: false }, y: { beginAtZero: true, max: max, ticks: { stepSize: Math.max(1, Math.round(max / 5)) }, grid: { display: false } } } }
+            });
+            node.setAttribute('data-qy-chart-done', '1');
+        }).catch(function () { dataFail(node, '无法加载在线人数'); });
+    }
+
+    function enhanceDataBlocks() {
+        Array.prototype.forEach.call(document.querySelectorAll('[data-qy-data]'), function (node) {
+            if (node.getAttribute('data-qy-data-done') === '1') return;
+            var type = node.getAttribute('data-qy-data');
+            var limit = Number(node.getAttribute('data-limit')) || 0;
+            if (type === 'changelog') renderChangelog(node, limit);
+            else if (type === 'commands') renderCommands(node);
+            else if (type === 'nav') renderNavData(node);
+            else if (type === 'timeline') renderTimelineData(node);
+            else if (type === 'gallery') renderGalleryData(node, limit);
+        });
+        Array.prototype.forEach.call(document.querySelectorAll('[data-qy-chart]'), function (node) {
+            renderChart(node);
+        });
+    }
+
     /* ---------------- 非编辑时的增强 ---------------- */
 
     function enhanceContent() {
@@ -127,6 +294,7 @@
                 try { node.innerHTML = window.marked.parse(text); } catch (e) {}
             }
         });
+        enhanceDataBlocks();
     }
 
     /* ---------------- 编辑器 ---------------- */
@@ -220,6 +388,7 @@
         wrap.innerHTML = html || '';
         if (tools) wrap.appendChild(tools);
         else addTools(wrap, wrap.dataset.blockId);
+        enhanceContent();
     }
 
     function refreshBlockNode(block) {
@@ -547,10 +716,36 @@
         document.body.appendChild(panel);
     }
 
+    function startBlank() {
+        var root = document.getElementById('qy-blocks-page');
+        if (!root) {
+            var keep = ['menu-box', 'footer', 'page-loader', 'qy-scrollbar', 'musicControl', 'qy-toast', 'qy-nav-progress',
+                'qy-blocks-editorbar', 'qy-blocks-library', 'qy-blocks-empty-canvas'];
+            root = document.createElement('main');
+            root.id = 'qy-blocks-page';
+            root.className = 'qy-blocks-page';
+            Array.prototype.slice.call(document.body.children).forEach(function (node) {
+                if (node === root || node.tagName === 'SCRIPT' || node.tagName === 'STYLE') return;
+                if (node.id && keep.indexOf(node.id) >= 0) return;
+                if (node.id && node.id.indexOf('qy-block') === 0) return;
+                node.style.display = 'none';
+            });
+            var footer = document.getElementById('footer');
+            if (footer && footer.parentNode) footer.parentNode.insertBefore(root, footer);
+            else document.body.appendChild(root);
+        }
+        var empty = document.getElementById('qy-blocks-empty-canvas');
+        if (empty) empty.remove();
+        bindCanvasDrop();
+        if (editor) editor.exists = true;
+        return root;
+    }
+
     function addBlockToCanvas(type, beforeWrap) {
         var block = makeBlock(type);
         editor.blocks.push(block);
         var root = canvas();
+        if (!root) root = startBlank();
         if (!root) return;
         var wrap = createPlaceholder(block);
         if (beforeWrap && beforeWrap.parentNode === root) root.insertBefore(wrap, beforeWrap);
@@ -655,27 +850,19 @@
     }
 
     function importCurrent() {
-        if (!confirm('把当前页面按区块拆分成可拖拽模块？之后可单独编辑、拖动或删除每个区块。')) return;
-        var skip = ['SCRIPT', 'STYLE', 'LINK', 'META'];
-        var permanent = ['menu-box', 'footer', 'page-loader', 'qy-scrollbar', 'musicControl', 'qy-toast', 'qy-nav-progress', 'qy-blocks-editorbar', 'qy-blocks-library', 'qy-block-modal', 'qy-blocks-empty-canvas', 'qy-site-widgets'];
-        var blocks = [];
-        Array.prototype.forEach.call(document.body.children, function (node) {
-            if (skip.indexOf(node.tagName) >= 0) return;
-            if (node.id && permanent.indexOf(node.id) >= 0) return;
-            if (node.id === 'qy-blocks-page') return;
-            if (node.hasAttribute && node.hasAttribute('data-qy-global')) return;
-            var html = node.outerHTML.replace(/<script[\s\S]*?<\/script>/gi, '');
-            if (!html.trim()) return;
-            blocks.push({ id: 'b-' + Math.random().toString(16).slice(2, 10), type: 'raw', props: { html: html } });
+        if (!confirm('从原始静态页面重新导入内容并按区块拆分？这会覆盖当前页面的区块布局。')) return;
+        api('/api/admin/layout/import-static', {
+            method: 'POST',
+            body: JSON.stringify({ path: editor.path })
+        }).then(function (result) {
+            if (!result.blocks || !result.blocks.length) {
+                toast('原页面没有可导入内容', true);
+                return;
+            }
+            location.reload();
+        }).catch(function (error) {
+            toast(error.message, true);
         });
-        if (!blocks.length) {
-            toast('没有可导入的页面内容', true);
-            return;
-        }
-        api('/api/site/layout', {
-            method: 'PUT',
-            body: JSON.stringify({ path: editor.path, blocks: blocks })
-        }).then(function () { location.reload(); }).catch(function (e) { toast(e.message, true); });
     }
 
     function startEditor() {
@@ -696,7 +883,7 @@
                 editor = {
                     types: results[0].types || [],
                     path: results[1].path || currentPath(),
-                    exists: Boolean(results[1].exists),
+                    exists: Boolean(results[1].exists) && (results[1].blocks || []).length > 0,
                     blocks: (results[1].blocks || []).slice(),
                     dragFrom: null,
                     dragId: null,
@@ -705,17 +892,36 @@
                 ensureEditorStyle();
                 buildEditorBar();
                 renderLibrary();
+                if (!window.__qyBlocksDocDrop) {
+                    window.__qyBlocksDocDrop = true;
+                    document.addEventListener('dragover', function (e) {
+                        if (editor && editor.dragFrom === 'library' && !canvas()) e.preventDefault();
+                    });
+                    document.addEventListener('drop', function (e) {
+                        if (!editor || editor.dragFrom !== 'library' || canvas()) return;
+                        e.preventDefault();
+                        var type = editor.dragType;
+                        editor.dragFrom = null;
+                        editor.dragType = null;
+                        if (type) addBlockToCanvas(type);
+                    });
+                }
                 if (!editor.exists) {
                     var root = document.getElementById('content') || document.body;
                     var empty = document.createElement('div');
                     empty.id = 'qy-blocks-empty-canvas';
-                    empty.innerHTML = '此页面还没有模块布局。点击下方按钮把现有页面转换为可拖拽模块，或直接用左侧模块库拖入内容。' +
-                        '<br><button type="button">导入当前页面内容</button>';
-                    empty.querySelector('button').addEventListener('click', importCurrent);
+                    empty.innerHTML = '此页面还没有模块布局。可以导入现有内容拆分，或从空白开始搭建。' +
+                        '<div style="margin-top:12px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">' +
+                        '<button type="button" data-act="import">导入当前页面内容</button>' +
+                        '<button type="button" data-act="blank" style="background:#f6eef3;color:#a15a78;">从空白开始搭建</button>' +
+                        '</div>';
+                    empty.querySelector('[data-act="import"]').addEventListener('click', importCurrent);
+                    empty.querySelector('[data-act="blank"]').addEventListener('click', startBlank);
                     root.appendChild(empty);
                 } else {
                     wrapExistingBlocks();
                     bindCanvasDrop();
+                    enhanceContent();
                 }
             });
         }).catch(function (error) {

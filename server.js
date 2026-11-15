@@ -19,6 +19,8 @@ const mcstatus = require('./site/services/mcstatus');
 const danmakuService = require('./site/services/danmaku');
 const commentsService = require('./site/services/comments');
 const layoutStore = require('./site/layout');
+const migrator = require('./site/migrate');
+const contentDb = require('./site/db');
 
 // ==================== AI 配置 ====================
 
@@ -340,6 +342,7 @@ function cleanChunk(chunk) {
 }
 
 const ROOT = cms.ROOT;
+const WEB_DIR = path.join(ROOT, 'web');
 const PORT = Number(process.env.PORT) || 5000;
 const HOST = process.env.HOST || '0.0.0.0';
 const ADMIN_DIR = path.join(__dirname, 'site', 'admin');
@@ -409,6 +412,71 @@ app.get('/api/site-config', (req, res) => {
       enabled: cfg.comments.enabled !== false
     }
   });
+});
+
+/* ---------------- 内容数据（数据库，替代 JSON 文件） ---------------- */
+
+function ensureSeeded() {
+  const all = contentDb.list('gallery_image').concat(
+    contentDb.list('changelog_entry'),
+    contentDb.list('timeline_entry'),
+    contentDb.list('nav_item'),
+    contentDb.list('command'),
+    contentDb.list('popup_announcement'),
+    contentDb.list('faq_item'),
+    contentDb.list('faq_content')
+  );
+  if (!all.length) {
+    contentDb.seedFromJson();
+  }
+}
+
+app.get('/api/content/:type', (req, res) => {
+  const type = req.params.type;
+  ensureSeeded();
+  const rows = contentDb.list(type);
+  res.setHeader('Cache-Control', 'no-cache');
+  res.json({ type, items: rows });
+});
+
+app.get('/api/admin/content', requireAuth, (req, res) => {
+  ensureSeeded();
+  const type = req.query.type;
+  const rows = type ? contentDb.list(type) : [];
+  res.json({ items: rows });
+});
+
+app.get('/api/admin/content/:id', requireAuth, (req, res) => {
+  const row = contentDb.get(Number(req.params.id));
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  res.json(row);
+});
+
+app.put('/api/admin/content/:id', requireAuth, express.json(), (req, res) => {
+  const id = Number(req.params.id);
+  const { type, key, title, description, value, route, sortOrder } = req.body;
+  if (!type || !key) return res.status(400).json({ error: 'type and key required' });
+  contentDb.upsert({ id, type, key, title, description, value, route, sortOrder });
+  const row = contentDb.get(id);
+  res.json(row);
+});
+
+app.post('/api/admin/content', requireAuth, express.json(), (req, res) => {
+  const { type, key, title, description, value, route, sortOrder } = req.body;
+  if (!type || !key) return res.status(400).json({ error: 'type and key required' });
+  const id = contentDb.upsert({ type, key, title, description, value, route, sortOrder });
+  const row = contentDb.get(id);
+  res.status(201).json(row);
+});
+
+app.delete('/api/admin/content/:id', requireAuth, (req, res) => {
+  contentDb.remove(Number(req.params.id));
+  res.json({ ok: true });
+});
+
+app.post('/api/admin/content/seed', requireAuth, (req, res) => {
+  contentDb.seedFromJson();
+  res.json({ ok: true, message: 'Seeded from JSON files' });
 });
 
 /* ---------------- 页面区块布局 ---------------- */
@@ -500,8 +568,12 @@ app.post('/api/admin/password', requireAuth, (req, res) => {
 
 app.get('/api/admin/pages', requireAuth, (req, res) => {
   const store = cms.loadStore();
+  const pages = cms.listPages().map((page) => ({
+    ...page,
+    hasBlocks: Boolean((layoutStore.getLayout(page.sitePath) || []).length)
+  }));
   res.json({
-    pages: cms.listPages(),
+    pages,
     sources: [...data.listSources(store), ...scripts.listSources(store)],
     stats: cms.stats()
   });
@@ -597,6 +669,22 @@ app.post('/api/admin/block-preview', requireAuth, (req, res) => {
   );
   res.setHeader('Cache-Control', 'no-store');
   res.json({ html });
+});
+
+app.post('/api/admin/layout/migrate', requireAuth, (req, res) => {
+  const force = Boolean(req.body && req.body.force);
+  const report = migrator.migrateAll({ force });
+  res.json({ ok: true, count: report.length, report });
+});
+
+app.post('/api/admin/layout/import-static', requireAuth, (req, res) => {
+  const sitePath = layoutStore.normalizePath((req.body && req.body.path) || '/');
+  const blocks = migrator.importStatic(sitePath);
+  if (!blocks) {
+    res.status(404).json({ error: '找不到对应的静态页面文件' });
+    return;
+  }
+  res.json({ ok: true, path: sitePath, blocks });
 });
 
 function saveUpload(body) {
@@ -778,7 +866,16 @@ app.get('/admin-assets/inline.js', (req, res) => {
   res.send('/* 旧的文字行内编辑器已停用，改用官网区块编辑器 */');
 });
 
-app.use('/admin-assets', express.static(ADMIN_DIR, { index: false, maxAge: '1h' }));
+app.use('/admin-assets', express.static(ADMIN_DIR, {
+  index: false,
+  etag: false,
+  lastModified: false,
+  setHeaders(res) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+}));
 
 const UPLOAD_DIR = path.join(settings.DATA_DIR, 'uploads');
 app.use('/uploads', express.static(UPLOAD_DIR, { index: false, maxAge: '30d' }));
@@ -799,12 +896,17 @@ function resolveHtmlFile(urlPath) {
   const target = safeJoin(urlPath);
   if (!target) return null;
   const candidates = [];
+  const webTarget = path.join(WEB_DIR, path.posix.normalize(decodeURIComponent(String(urlPath).split('?')[0])).replace(/^\/+/, ''));
   if (urlPath.endsWith('/')) {
     candidates.push(path.join(target, 'index.html'));
+    candidates.push(path.join(webTarget, 'index.html'));
   } else {
     candidates.push(target);
     candidates.push(`${target}.html`);
     candidates.push(path.join(target, 'index.html'));
+    candidates.push(webTarget);
+    candidates.push(`${webTarget}.html`);
+    candidates.push(path.join(webTarget, 'index.html'));
   }
   for (const candidate of candidates) {
     try {
@@ -856,29 +958,37 @@ app.get(/^\/(?!api\/|admin\/?$|admin-assets\/).*/, (req, res, next) => {
   }
 });
 
-/* ---------------- 可编辑数据文件 ---------------- */
+/* ---------------- 可编辑数据文件（现已迁至内容数据库，兼容旧路径） ---------------- */
+
+const CONFIG_TO_TYPE = {
+  '/Configs/images.json': 'gallery_image',
+  '/Configs/updata.json': 'changelog_entry',
+  '/Configs/timeline.json': 'timeline_entry',
+  '/Configs/nav.json': 'nav_item',
+  '/Configs/commands.json': 'command',
+  '/Configs/dontShowPopup.json': 'popup_announcement'
+};
 
 app.get(/^\/Configs\/.+/, (req, res, next) => {
-  if (!data.routeInfo(req.path)) {
+  const type = CONFIG_TO_TYPE[req.path];
+  if (!type) {
     next();
     return;
   }
   try {
-    const body = data.patchRoute(req.path, cms.loadStore());
-    if (body === null) {
-      next();
-      return;
-    }
-    const ext = path.extname(req.path).toLowerCase();
-    res.setHeader('Content-Type', MIME[ext] || 'text/plain; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.send(body);
+    const rows = contentDb.list(type);
+    const items = rows.map((r) => {
+      try { return JSON.parse(r.value || '{}'); } catch { return {}; }
+    }).filter(Boolean);
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store');
+    res.json(items);
   } catch (error) {
     next(error);
   }
 });
 
-app.get(/^\/(lib|live|search|updatelog|tools)\/.+\.js$/, (req, res, next) => {
+app.get(/^\/(web\/)?(lib|live|search|updatelog|tools)\/.+\.js$/, (req, res, next) => {
   if (!scripts.routeInfo(req.path)) {
     next();
     return;
@@ -890,7 +1000,7 @@ app.get(/^\/(lib|live|search|updatelog|tools)\/.+\.js$/, (req, res, next) => {
       return;
     }
     res.setHeader('Content-Type', MIME['.js']);
-    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Cache-Control', 'no-store');
     res.send(body);
   } catch (error) {
     next(error);
@@ -907,6 +1017,8 @@ app.use(
     }
   })
 );
+
+app.use(express.static(WEB_DIR, { index: false }));
 
 app.use((req, res) => {
   const file = path.join(ROOT, '404.html');
@@ -1085,4 +1197,6 @@ server.listen(PORT, HOST, () => {
   if (auth.mustChangePassword()) {
     console.log('首次使用请用默认密码 admin123 登录，并立即修改密码。');
   }
+  contentDb.seedFromJson();
+  console.log('[db] 内容数据库已初始化，已从 JSON 文件种子数据');
 });

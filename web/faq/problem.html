@@ -464,40 +464,66 @@
         </div>
         -->
 
-    <script src="/Configs/faq/faqList.js"></script>
     <script src="/lib/all.js"></script>
     <script>
-        
+        let allFaqItems = [];
+        let allFaqContents = {};
 
-        // 获取 URL 参数
-        function getQuery(name) {
-            const m = location.search.match(new RegExp('(?:[?&]' + name + '=)([^&]+)'));
-            return m ? decodeURIComponent(m[1]) : '';
+        // 从 API 加载 FAQ 列表和内容
+        async function loadFaqData() {
+            try {
+                const [listResp, contentResp] = await Promise.all([
+                    fetch('/api/content/faq_item?t=' + Date.now()),
+                    fetch('/api/content/faq_content?t=' + Date.now())
+                ]);
+                const listData = await listResp.json();
+                const contentData = await contentResp.json();
+                allFaqItems = (listData.items || []).map(item => {
+                    try { return JSON.parse(item.value || '{}'); } catch { return {}; }
+                }).filter(p => p.id || p.title);
+                (contentData.items || []).forEach(item => {
+                    try { allFaqContents[item.key] = item.value; } catch {}
+                });
+                loadProblem();
+            } catch (error) {
+                console.error('加载 FAQ 数据失败:', error);
+                const contentElement = document.getElementById('problem-content');
+                if (contentElement) contentElement.innerHTML = '<p style="color:#fff;text-align:center;">加载失败</p>';
+            }
         }
 
-        // 加载问题内容
-        // 加载问题内容
+        // 加载指定问题内容
+        function loadProblem() {
             const id = getQuery('id');
-            const problem = problems.find(p => p.id === id);
+            const problem = allFaqItems.find(p => p.id === id);
             const contentElement = document.getElementById('problem-content');
             const titleElement = document.getElementById('problem-title');
             const tagsElement = document.getElementById('problem-tags');
 
             if (!problem) {
-                contentElement.innerHTML = '<p>未找到该问题。</p>';
-                titleElement.textContent = '问题不存在';
-            } else {
-                // 设置标题和标签
-                titleElement.textContent = problem.title;
-                document.title = problem.title + ' - 问题详情';
+                if (contentElement) contentElement.innerHTML = '<p>未找到该问题。</p>';
+                if (titleElement) titleElement.textContent = '问题不存在';
+                return;
+            }
 
-                if (problem.tags && problem.tags.length > 0) {
-                    tagsElement.innerHTML = problem.tags.map(t => `<mark>${t}</mark>`).join(' ');
-                }
+            // 设置标题和标签
+            titleElement.textContent = problem.title;
+            document.title = problem.title + ' - 问题详情';
 
-                // 显示加载状态
-                contentElement.setAttribute('data-loading', 'true');
+            if (problem.tags && problem.tags.length > 0) {
+                tagsElement.innerHTML = problem.tags.map(t => `<mark>${t}</mark>`).join(' ');
+            }
 
+            // 显示加载状态
+            contentElement.setAttribute('data-loading', 'true');
+
+            // 尝试从数据库读取内容，否则从文件读取
+            const dbContent = allFaqContents[problem.id];
+            if (dbContent) {
+                contentElement.innerHTML = marked.parse(dbContent);
+                bindImageClicks();
+                contentElement.removeAttribute('data-loading');
+            } else if (problem.file) {
                 fetch(problem.file)
                     .then(r => {
                         if (!r.ok) throw { status: r.status, problem: problem };
@@ -505,61 +531,39 @@
                     })
                     .then(md => {
                         contentElement.innerHTML = marked.parse(md);
-                        // 为渲染后的图片绑定放大行为
-                        setTimeout(function () {
-                            document.querySelectorAll('#problem-content img').forEach(img => {
-                                if (!img) return;
-                                img.style.cursor = 'pointer';
-                                img.addEventListener('click', function () {
-                                    handleImageClick(this.src);
-                                });
-                            });
-                        }, 50);
+                        bindImageClicks();
+                        contentElement.removeAttribute('data-loading');
                     })
                     .catch(error => {
                         console.error('加载问题失败:', error);
-
-                        // 尝试加载模板文件
-                        if (error && error.problem) {
-                            fetch('md/default.md')
-                                .then(r => r.text())
-                                .then(template => {
-                                    // 替换模板占位符
-                                    let content = template
-                                        .replace(/\{title\}/g, error.problem.title)
-                                        .replace(/\{summary\}/g, error.problem.summary)
-                                        .replace(/\{file\}/g, error.problem.file);
-
-                                    // 添加 HTTP 状态码错误信息
-                                    content += `\n\n> **HTTP 状态码**: ${error.status || '未知'}`;
-
-                                    contentElement.innerHTML = marked.parse(content);
-                                })
-                                .catch(() => {
-                                    // 模板也加载失败，显示简单错误
-                                    contentElement.innerHTML = `
-                                        <h1>${error.problem.title}</h1>
-                                        <p>${error.problem.summary}</p>
-                                        <hr>
-                                        <blockquote>
-                                            <p><strong>⚠️ 错误信息</strong></p>
-                                            <p>请求的文件 <code>${error.problem.file}</code> 未找到。</p>
-                                            <p>HTTP 状态码: ${error.status || '未知'}</p>
-                                            <p>可能的原因：文件尚未创建、路径配置错误或已被删除。</p>
-                                            <p>模板文件也加载失败，请检查 <code>/faq/problems/_template.md</code> 是否存在。</p>
-                                        </blockquote>
-                                    `;
-                                });
-                        } else {
-                            contentElement.innerHTML = '<p>加载内容时出错：' + (error.message || '未知错误') + '</p>';
-                        }
-                    })
-                    .finally(() => {
+                        contentElement.innerHTML = '<p>无法加载问题内容。</p>';
                         contentElement.removeAttribute('data-loading');
                     });
+            } else {
+                contentElement.innerHTML = '<p>该问题没有关联内容。</p>';
+                contentElement.removeAttribute('data-loading');
             }
+        }
 
-        // 图片放大（大屏模态 / 小屏新标签）
+        function bindImageClicks() {
+            setTimeout(function () {
+                document.querySelectorAll('#problem-content img').forEach(img => {
+                    if (!img) return;
+                    img.style.cursor = 'pointer';
+                    img.addEventListener('click', function () {
+                        handleImageClick(this.src);
+                    });
+                });
+            }, 50);
+        }
+
+        // 获取 URL 参数
+        function getQuery(name) {
+            const m = location.search.match(new RegExp('(?:[?&]' + name + '=)([^&]+)'));
+            return m ? decodeURIComponent(m[1]) : '';
+        }
+
+        document.addEventListener('DOMContentLoaded', loadFaqData);
         function openImageModal(src) {
             if (!src) return;
             if (window.innerWidth < 900) {

@@ -29,7 +29,7 @@ window.addEventListener('scroll', function () {
 });
 
 function loadChangelog() {
-    fetch('/Configs/updata.json')
+    fetch('/Configs/updata.json?t=' + Date.now())
         .then(res => res.json())
         .then(data => {
             const list = document.getElementById('changelog-list');

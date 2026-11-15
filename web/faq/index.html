@@ -293,8 +293,7 @@
         </div>
     </section>
 
-    <!-- 引入问题列表数据 -->
-    <script src="/Configs/faq/faqList.js"></script>
+    <!-- 问题列表数据从内容数据库 API 读取（原 /Configs/faq/faqList.js 已迁移） -->
     <script src="/lib/all.js"></script>
     <script>
         // 壁纸配置
@@ -313,6 +312,24 @@
             }
         }
 
+        let allProblems = [];
+
+        // 从 API 加载 FAQ 列表
+        async function loadFaqList() {
+            try {
+                const response = await fetch('/api/content/faq_item?t=' + Date.now());
+                const data = await response.json();
+                allProblems = (data.items || []).map(item => {
+                    try { return JSON.parse(item.value || '{}'); } catch { return {}; }
+                }).filter(p => p.id || p.title);
+                renderList();
+            } catch (error) {
+                console.error('加载 FAQ 列表失败:', error);
+                const list = document.getElementById('problem-list');
+                if (list) list.innerHTML = '<li style="text-align:center;padding:2em;">加载失败</li>';
+            }
+        }
+
         // 渲染问题列表
         function renderList(filter = '') {
             const list = document.getElementById('problem-list');
@@ -324,7 +341,7 @@
             list.innerHTML = '';
             const keyword = filter.trim().toLowerCase();
 
-            const filteredProblems = problems.filter(p =>
+            const filteredProblems = allProblems.filter(p =>
                 p.title.toLowerCase().includes(keyword) ||
                 p.summary.toLowerCase().includes(keyword) ||
                 (p.tags && p.tags.join(',').toLowerCase().includes(keyword))
@@ -355,8 +372,8 @@
                 bgDiv.style.backgroundImage = `url('${wallpapers[deviceType]}')`;
             }
 
-            // 初始化问题列表
-            renderList();
+            // 加载 FAQ 列表
+            loadFaqList();
 
             // 绑定搜索事件——这是关键修复点
             const searchInput = document.getElementById('search');

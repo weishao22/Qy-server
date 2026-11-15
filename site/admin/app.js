@@ -77,6 +77,9 @@ function switchView(name) {
     if (name === 'content' && state.pages.length && !state.currentPage && !state.currentSource) {
         selectPage(state.pages[0].sitePath);
     }
+    if (name === 'datacontent') {
+        loadDbTypes();
+    }
 }
 
 document.getElementById('tabs').addEventListener('click', (event) => {
@@ -269,7 +272,9 @@ async function selectPage(sitePath) {
         visual.href = `${sitePath}?edit=1`;
         el('page-title').textContent = pageLabel(sitePath);
         const page = state.pages.find((p) => p.sitePath === sitePath);
-        el('page-meta').textContent = page ? `${page.count} 段文字 · 源文件 ${page.file}` : '';
+        el('page-meta').textContent = page
+            ? `${page.count} 段文字 · 源文件 ${page.file}${page.hasBlocks ? ' · 已区块化（建议用“页面上直接改”）' : ''}`
+            : '';
     } else {
         preview.hidden = true;
         visual.hidden = true;
@@ -523,6 +528,27 @@ el('save-all').addEventListener('click', async () => {
     }
 });
 
+/* ---------------- 导入静态页面到区块库 ---------------- */
+const migrateStaticBtn = el('migrate-static');
+if (migrateStaticBtn) {
+    migrateStaticBtn.addEventListener('click', async () => {
+        if (!confirm('把所有尚未区块化的静态页面导入数据库？已有区块的页面会跳过。')) return;
+        migrateStaticBtn.disabled = true;
+        try {
+            const result = await api('/api/admin/layout/migrate', {
+                method: 'POST',
+                body: JSON.stringify({ force: false })
+            });
+            showToast(`已处理 ${result.count} 个页面`, 'ok');
+            await loadPages();
+        } catch (error) {
+            showToast(error.message, 'error');
+        } finally {
+            migrateStaticBtn.disabled = false;
+        }
+    });
+}
+
 /* ---------------- 搜索 ---------------- */
 let searchTimer = null;
 el('search-input').addEventListener('input', (event) => {
@@ -752,6 +778,325 @@ async function saveSettings() {
     }
 }
 
-el('settings-save').addEventListener('click', saveSettings);
+el('settings-save')?.addEventListener('click', saveSettings);
+
+/* ---------------- 内容库（数据库内容管理） ---------------- */
+
+const dbState = {
+    currentType: null,
+    currentItem: null,
+    currentParsed: {},
+    items: []
+};
+
+const DB_TYPE_LABELS = {
+    gallery_image: '图廊图片',
+    changelog_entry: '更新日志',
+    timeline_entry: '发展历程',
+    nav_item: '网站导航',
+    command: '服务器指令',
+    popup_announcement: '弹窗公告',
+    faq_item: 'FAQ 问题',
+    faq_content: 'FAQ 内容'
+};
+
+async function loadDbTypes() {
+    // 始终展示所有已知内容类型，即使数据库为空也能新建
+    const dbTypes = Object.keys(DB_TYPE_LABELS);
+    renderDbTypes(dbTypes);
+    if (dbTypes.length) {
+        selectDbType(dbTypes[0]);
+    }
+}
+
+function renderDbTypes(types) {
+    const container = el('db-type-list');
+    container.innerHTML = '';
+    types.forEach((type) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'page-item' + (dbState.currentType === type ? ' active' : '');
+        btn.textContent = DB_TYPE_LABELS[type] || type;
+        btn.dataset.type = type;
+        btn.addEventListener('click', () => selectDbType(type));
+        container.appendChild(btn);
+    });
+}
+
+function selectDbType(type) {
+    dbState.currentType = type;
+    dbState.currentItem = null;
+    el('db-form-wrap').hidden = true;
+    el('db-empty').hidden = true;
+    document.querySelectorAll('#db-type-list .page-item').forEach((b) => {
+        b.classList.toggle('active', b.dataset.type === type);
+    });
+    loadDbItems(type);
+}
+
+async function loadDbItems(type) {
+    dbState.currentType = type;
+    try {
+        const data = await api(`/api/content/${type}?t=${Date.now()}`);
+        const items = (data.items || []).map((r) => {
+            try {
+                const parsed = JSON.parse(r.value || '{}');
+                return { ...r, parsed };
+            } catch {
+                return { ...r, parsed: {} };
+            }
+        });
+        dbState.items = items;
+        renderDbItems(items);
+    } catch (error) {
+        dbState.items = [];
+        renderDbItems([]);
+        showToast('加载内容列表失败：' + error.message, 'error');
+    }
+}
+
+function renderDbItems(items) {
+    const container = el('db-list');
+    const empty = el('db-empty');
+    const title = el('db-list-title');
+    const meta = el('db-list-meta');
+
+    title.textContent = DB_TYPE_LABELS[dbState.currentType] || dbState.currentType;
+    meta.textContent = `共 ${items.length} 条`;
+
+    if (!items || !items.length) {
+        container.innerHTML = '';
+        empty.hidden = false;
+        return;
+    }
+    empty.hidden = true;
+    container.innerHTML = '';
+    items.forEach((item) => {
+        const row = document.createElement('div');
+        row.className = 'page-item db-row';
+        row.dataset.id = item.id;
+        const preview = (() => {
+            try {
+                const p = item.parsed || {};
+                if (p.title) return p.title;
+                if (p.name) return p.name;
+                if (p.text) return p.text.slice(0, 30);
+                return String(item.value || '').slice(0, 30);
+            } catch {
+                return String(item.value || '').slice(0, 30);
+            }
+        })();
+        row.innerHTML = `
+            <div class="db-row-main">${escapeHtml(preview)}</div>
+            <div class="db-row-meta">${escapeHtml(item.key || '')} · ${new Date(item.updatedAt * 1000).toLocaleString()}</div>
+        `;
+        row.addEventListener('click', () => selectDbItem(item));
+        container.appendChild(row);
+    });
+}
+
+/* 各内容类型的专用表单字段定义 */
+const DB_SCHEMAS = {
+    gallery_image: [
+        { key: 'title', label: '标题', type: 'text' },
+        { key: 'imageUrl', label: '原图 URL', type: 'url' },
+        { key: 'thumbnailUrl', label: '缩略图 URL（留空则用原图）', type: 'url' },
+        { key: 'date', label: '日期', type: 'text' },
+        { key: 'location', label: '地点', type: 'text' },
+        { key: 'author', label: '作者', type: 'text' },
+        { key: 'description', label: '描述', type: 'text' }
+    ],
+    changelog_entry: [
+        { key: 'date', label: '日期', type: 'text' },
+        { key: 'title', label: '标题', type: 'text' },
+        { key: 'content', label: '内容（每行一条）', type: 'textarea', rows: 6 }
+    ],
+    timeline_entry: [
+        { key: 'date', label: '日期', type: 'text' },
+        { key: 'title', label: '标题', type: 'text' },
+        { key: 'description', label: '描述', type: 'textarea', rows: 4 }
+    ],
+    nav_item: [
+        { key: 'title', label: '名称', type: 'text' },
+        { key: 'url', label: '链接', type: 'text' },
+        { key: 'description', label: '描述', type: 'text' },
+        { key: 'icon', label: '图标（如 fas fa-link）', type: 'text' }
+    ],
+    command: [
+        { key: 'name', label: '指令', type: 'text' },
+        { key: 'description', label: '描述', type: 'text' },
+        { key: 'usage', label: '用法', type: 'textarea', rows: 3 },
+        { key: 'icon', label: '图标（如 fa-terminal）', type: 'text' }
+    ],
+    popup_announcement: [
+        { key: 'title', label: '标题', type: 'text' },
+        { key: 'content', label: '内容', type: 'textarea', rows: 4 }
+    ],
+    faq_item: [
+        { key: 'id', label: '编号（如 001）', type: 'text' },
+        { key: 'title', label: '问题', type: 'text' },
+        { key: 'summary', label: '摘要', type: 'textarea', rows: 2 },
+        { key: 'tags', label: '标签（逗号分隔）', type: 'text' }
+    ],
+    faq_content: [
+        { key: 'title', label: '标题', type: 'text' },
+        { key: 'content', label: 'Markdown 内容', type: 'textarea', rows: 10 }
+    ]
+};
+
+function renderDbFields(type, data) {
+    const box = el('db-fields');
+    if (!box) return;
+    box.innerHTML = '';
+    const schema = DB_SCHEMAS[type] || [{ key: 'content', label: '内容（JSON）', type: 'textarea', rows: 8 }];
+    schema.forEach((field) => {
+        const wrap = document.createElement('label');
+        wrap.className = 'field';
+        const span = document.createElement('span');
+        span.textContent = field.label;
+        wrap.appendChild(span);
+        let input;
+        if (field.type === 'textarea') {
+            input = document.createElement('textarea');
+            input.rows = field.rows || 4;
+        } else {
+            input = document.createElement('input');
+            input.type = 'text';
+        }
+        let val = data ? data[field.key] : '';
+        if (Array.isArray(val)) val = val.join('\n');
+        input.value = val == null ? '' : String(val);
+        input.dataset.field = field.key;
+        wrap.appendChild(input);
+        box.appendChild(wrap);
+    });
+}
+
+function collectDbValues() {
+    const box = el('db-fields');
+    const out = {};
+    if (!box) return out;
+    box.querySelectorAll('input[data-field], textarea[data-field]').forEach((input) => {
+        const key = input.dataset.field;
+        let val = input.value;
+        if (key === 'tags') {
+            out[key] = val.split(/[,，]/).map((s) => s.trim()).filter(Boolean);
+        } else if (key === 'content') {
+            out[key] = val;
+        } else {
+            out[key] = val.trim();
+        }
+    });
+    return out;
+}
+
+function selectDbItem(item) {
+    dbState.currentItem = item;
+    document.querySelectorAll('#db-list .db-row').forEach((r) => {
+        r.classList.toggle('active', r.dataset.id == item.id);
+    });
+
+    let parsed = {};
+    try { parsed = JSON.parse(item.value || '{}'); } catch { parsed = {}; }
+    dbState.currentParsed = parsed;
+
+    el('db-id').value = item.id;
+    el('db-type').value = item.type;
+    el('db-key').value = item.key || '';
+    el('db-sortOrder').value = item.sortOrder || 0;
+    renderDbFields(item.type, parsed);
+    const delBtn = el('db-delete');
+    if (delBtn) delBtn.hidden = false;
+
+    el('db-form-title').textContent = '编辑：' + (parsed.title || parsed.name || item.key || '未命名');
+    el('db-form-meta').textContent = 'ID：' + item.id + ' · 类型：' + item.type;
+    el('db-form-wrap').hidden = false;
+}
+
+function newDbItem() {
+    if (!dbState.currentType) {
+        showToast('请先选择内容类型', 'error');
+        return;
+    }
+    dbState.currentItem = null;
+    dbState.currentParsed = {};
+    el('db-id').value = '';
+    el('db-type').value = dbState.currentType;
+    el('db-key').value = '';
+    el('db-sortOrder').value = 0;
+    renderDbFields(dbState.currentType, {});
+
+    el('db-form-title').textContent = '新建：' + (DB_TYPE_LABELS[dbState.currentType] || dbState.currentType);
+    el('db-form-meta').textContent = '类型：' + dbState.currentType;
+    el('db-delete').hidden = true;
+    el('db-form-wrap').hidden = false;
+
+    document.querySelectorAll('#db-list .db-row').forEach((r) => r.classList.remove('active'));
+}
+
+function saveDbItem() {
+    const id = el('db-id').value || undefined;
+    const type = el('db-type').value.trim();
+    let key = el('db-key').value.trim();
+    const sortOrder = Number(el('db-sortOrder').value) || 0;
+    const values = collectDbValues();
+
+    if (!type) {
+        showToast('类型不能为空', 'error');
+        return;
+    }
+
+    const merged = Object.assign({}, dbState.currentParsed || {}, values);
+    if (type === 'faq_item' && merged.id) {
+        key = merged.id;
+    }
+    if (!key) {
+        key = type + '-' + Date.now();
+    }
+
+    const title = merged.title || merged.name || '';
+    const description = merged.summary || merged.description || '';
+    const value = JSON.stringify(merged);
+
+    const payload = { type, key, title, description, value, route: '', sortOrder };
+    const method = id ? 'PUT' : 'POST';
+    const url = id ? `/api/admin/content/${id}` : '/api/admin/content';
+
+    api(url, { method, body: JSON.stringify(payload) })
+        .then(() => {
+            showToast(id ? '内容已更新' : '内容已新建', 'ok');
+            el('db-form-wrap').hidden = true;
+            loadDbItems(dbState.currentType);
+        })
+        .catch((error) => showToast('保存失败：' + error.message, 'error'));
+}
+
+function deleteDbItem() {
+    if (!dbState.currentItem) return;
+    if (!confirm('确定要删除此条内容吗？')) return;
+    api(`/api/admin/content/${dbState.currentItem.id}`, { method: 'DELETE' })
+        .then(() => {
+            showToast('内容已删除', 'ok');
+            el('db-form-wrap').hidden = true;
+            dbState.currentItem = null;
+            loadDbItems(dbState.currentType);
+        })
+        .catch((error) => showToast('删除失败：' + error.message, 'error'));
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+}
+
+el('db-new')?.addEventListener('click', newDbItem);
+el('db-refresh')?.addEventListener('click', () => loadDbItems(dbState.currentType));
+el('db-cancel')?.addEventListener('click', () => { 
+    const wrap = el('db-form-wrap'); 
+    if (wrap) wrap.hidden = true; 
+    dbState.currentItem = null; 
+});
+el('db-save')?.addEventListener('click', saveDbItem);
+el('db-delete')?.addEventListener('click', deleteDbItem);
 
 window.AdminApp = { api, showToast, el, state, switchView };

@@ -970,20 +970,24 @@
         });
 
         // 评论由 /lib/comments-widget.js 统一初始化（支持后台配置的第三方评论）
-        // 加载配置文件并渲染时间线
+        // 加载配置文件并渲染时间线（从内容数据库 API 读取）
         async function loadTimeline() {
             try {
-                const response = await fetch('/Configs/timeline.json'); // 配置文件存放路径
+                const response = await fetch('/api/content/timeline_entry?t=' + Date.now());
                 const data = await response.json();
                 const timelineContainer = document.querySelector('.timeline');
 
                 if (!timelineContainer) return;
 
-                timelineContainer.innerHTML = data.timeline.map(item => `
+                const items = (data.items || []).map(item => {
+                    try { return JSON.parse(item.value || '{}'); } catch { return {}; }
+                }).filter(item => item.date || item.description || item.title);
+
+                timelineContainer.innerHTML = items.map(item => `
                     <div class="timeline-item">
                         <div class="timeline-content">
-                            <div class="timeline-date">${escapeHtml(item.date)}</div>
-                            <p>${escapeHtml(item.description).replace(/\n/g, '<br>')}</p>
+                            <div class="timeline-date">${escapeHtml(item.date || '')}</div>
+                            <p>${escapeHtml(item.description || item.title || '').replace(/\n/g, '<br>')}</p>
                         </div>
                     </div>
                 `).join('');

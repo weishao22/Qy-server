@@ -257,14 +257,17 @@
         }
 
         document.addEventListener("DOMContentLoaded", function () {
-            fetch('/Configs/images.json')
+            fetch('/api/content/gallery_image?t=' + Date.now())
                 .then(response => {
                     if (!response.ok) throw new Error('Network response was not ok');
                     return response.json();
                 })
-                .then(images => {
+                .then(data => {
+                    const images = (data.items || []).map(item => {
+                        try { return JSON.parse(item.value || '{}'); } catch { return {}; }
+                    }).filter(img => img.imageUrl || img.thumbnailUrl);
                     const grid = document.getElementById('imageGrid');
-                    grid.innerHTML = ''; // 清空加载提示
+                    grid.innerHTML = '';
                     images.forEach(function (img) {
                         grid.appendChild(createImageCard(img));
                     });

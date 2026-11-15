@@ -123,7 +123,52 @@
     }
 
 
-    // ---------- 初始化所有功能 ----------
+    // ---------- 首页轮播图自动切换 ----------
+    function initHeroCarousel() {
+        const carousel = document.getElementById('heroCarousel');
+        if (!carousel) return;
+        const track = carousel.querySelector('.carousel-track');
+        const items = track ? Array.from(track.querySelectorAll('.carousel-item')) : [];
+        const dotsContainer = carousel.querySelector('.carousel-dots');
+        const prevBtn = carousel.querySelector('.carousel-prev');
+        const nextBtn = carousel.querySelector('.carousel-next');
+        if (items.length <= 1) return;
+        let index = 0;
+        let timer = null;
+
+        function renderDots() {
+            if (!dotsContainer) return;
+            dotsContainer.textContent = '';
+            items.forEach((_, i) => {
+                const dot = document.createElement('span');
+                dot.className = 'carousel-dot' + (i === index ? ' active' : '');
+                dot.addEventListener('click', () => { goTo(i); resetTimer(); });
+                dotsContainer.appendChild(dot);
+            });
+        }
+
+        function goTo(i) {
+            index = ((i % items.length) + items.length) % items.length;
+            track.style.transform = `translateX(-${index * 100}%)`;
+            renderDots();
+        }
+
+        function next() { goTo(index + 1); }
+        function prev() { goTo(index - 1); }
+
+        function resetTimer() {
+            if (timer) clearInterval(timer);
+            timer = setInterval(next, 4000);
+        }
+
+        prevBtn.addEventListener('click', () => { prev(); resetTimer(); });
+        nextBtn.addEventListener('click', () => { next(); resetTimer(); });
+        carousel.addEventListener('mouseenter', () => { if (timer) clearInterval(timer); });
+        carousel.addEventListener('mouseleave', resetTimer);
+
+        renderDots();
+        resetTimer();
+    }
     document.addEventListener('DOMContentLoaded', function () {
         try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (e) { }
         try { window.scrollTo(0, 0); } catch (e) { }
@@ -132,6 +177,7 @@
         initSmoothScroll();
         initResetPopup();
         loadTwikoo();
+        initHeroCarousel();
     });
 
 })();

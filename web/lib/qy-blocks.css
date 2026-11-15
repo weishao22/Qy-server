@@ -136,3 +136,40 @@ body.qy-block-editing .qy-block-empty {
     .qy-hero p { font-size: 1rem; }
     .qy-carousel-slide img { height: 210px; }
 }
+
+/* ---------- 数据区块 ---------- */
+.qy-data-block { background: #fff; border: 1px solid #f1e7f1; border-radius: 16px; padding: 24px; box-shadow: 0 10px 30px rgba(190,160,200,.1); }
+.qy-data-title { margin: 0 0 16px; color: #3c3741; font-size: 1.35rem; position: relative; padding-bottom: 10px; }
+.qy-data-title::after { content: ""; position: absolute; left: 0; bottom: 0; width: 60px; height: 4px; border-radius: 2px; background: linear-gradient(90deg,#f8a5c2,#a56de2); }
+.qy-data-loading, .qy-data-empty { color: #a99fae; font-size: .9rem; text-align: center; padding: 18px; }
+
+.qy-changelog { display: flex; flex-direction: column; gap: 18px; }
+.qy-changelog-item { border-left: 3px solid #f8a5c2; padding: 4px 0 4px 16px; }
+.qy-changelog-date { font-size: .8rem; color: #d0648a; font-weight: 600; margin-bottom: 4px; }
+.qy-changelog-title { font-size: 1.05rem; font-weight: 700; color: #3c3741; margin-bottom: 6px; }
+.qy-changelog-content { font-size: .9rem; line-height: 1.85; color: #6a6270; word-break: break-word; }
+.qy-changelog-content img { max-width: 100%; border-radius: 10px; margin: 8px 0; }
+.qy-changelog-content a { color: #d0648a; }
+
+.qy-cmd-group { margin-bottom: 18px; }
+.qy-cmd-group h4 { margin: 0 0 8px; color: #c25a7f; font-size: 1rem; }
+.qy-cmd-group ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.qy-cmd-group li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; padding: 7px 10px; border-radius: 9px; background: #faf6fa; }
+.qy-cmd-group code { background: #f3e6ee; color: #b1577a; padding: 2px 7px; border-radius: 5px; font-size: .85rem; }
+.qy-cmd-group li span { font-size: .86rem; color: #6a6270; }
+.qy-cmd-group li em { font-size: .8rem; color: #a99fae; font-style: normal; }
+
+.qy-navdata-group { margin-bottom: 20px; }
+.qy-navdata-group h4 { margin: 0 0 4px; color: #3c3741; font-size: 1.05rem; }
+.qy-navdata-group > p { margin: 0 0 10px; font-size: .84rem; color: #a99fae; }
+.qy-navdata-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+.qy-navdata-item { display: flex; flex-direction: column; gap: 4px; padding: 14px; border: 1px solid #f1e7f1; border-radius: 12px; text-decoration: none; color: inherit; background: #fff; transition: .18s; }
+.qy-navdata-item:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(190,160,200,.16); }
+.qy-navdata-item i { color: #f0789d; font-size: 1.1rem; }
+.qy-navdata-item strong { color: #3c3741; font-size: .98rem; }
+.qy-navdata-item span { color: #8a8190; font-size: .82rem; line-height: 1.6; }
+
+/* 在线人数图表 */
+.qy-chart-card { background: #fff; border: 1px solid #f1e7f1; border-radius: 16px; padding: 24px; box-shadow: 0 10px 30px rgba(190,160,200,.1); }
+.qy-chart-title { margin: 0 0 16px; color: #3c3741; font-size: 1.35rem; }
+.qy-chart-canvas { width: 100%; max-height: 200px; display: block; }

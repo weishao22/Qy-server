@@ -10,7 +10,7 @@ const ROOT = path.resolve(__dirname, '..');
 const DATA_DIR = path.join(ROOT, 'data');
 const CONTENT_FILE = path.join(DATA_DIR, 'content.json');
 
-const SKIP_DIRS = new Set(['node_modules', '.git', '.kilo', 'data', 'site', 'server', 'test', '.vscode']);
+const SKIP_DIRS = new Set(['node_modules', '.git', '.kilo', 'data', 'site', 'server', 'web', '.vscode']);
 const SKIP_TAGS = new Set(['script', 'style', 'noscript', 'template', 'code', 'pre']);
 const SHELL_IDS = ['menu-box', 'footer', 'page-loader'];
 
@@ -20,6 +20,7 @@ const ATTR_TARGETS = [
   { selector: 'meta[property="og:title"]', attr: 'content', label: 'og:title' },
   { selector: 'meta[property="og:description"]', attr: 'content', label: 'og:description' },
   { selector: 'meta[property="og:site_name"]', attr: 'content', label: 'og:site_name' },
+  { selector: 'meta[http-equiv="refresh"]', attr: 'content', label: '页面跳转地址' },
   { selector: '#banner img, .carousel-item img, .welcome-image img, #content img, .content-image img, .about-content img, .gallery img, figure img', attr: 'src', label: '图片地址' },
   { selector: '#banner img, .carousel-item img, .welcome-image img, #content img, .content-image img, .about-content img, .gallery img, figure img', attr: 'alt', label: '图片说明' },
   { selector: '#content a[href], .content-box a[href]', attr: 'href', label: '链接地址' },
@@ -438,24 +439,29 @@ function applyLayout(html, sitePath, blocks) {
   const $ = cheerio.load(html);
   const body = $('body');
   if (!body.length) return html;
-  const content = blocksStore.renderBlocks(blocks, { sitePath });
+  const GLOBAL_JS = /\/lib\/(AllComponents\.js|all\.js|qy-nav\.js|qy-widgets\.js|qy-blocks\.js|comments-widget\.js|marked\.min\.js)(\?|$)/;
+  const keepScripts = [];
+  if (blocks && blocks.length) {
+    body.find('script').each((_, el) => {
+      const $el = $(el);
+      if ($el.attr('data-qy-global') !== undefined) return;
+      const src = $el.attr('src');
+      if (src && GLOBAL_JS.test(src)) return;
+      keepScripts.push($.html(el));
+    });
+  }
+  const content = blocksStore.renderBlocks(blocks || [], { sitePath });
   body.html(`<main id="qy-blocks-page" class="qy-blocks-page">${content}</main>`);
+  if (keepScripts.length) body.append(keepScripts.join('\n'));
   return $.html();
 }
 
 function renderPage(file, options = {}) {
   const html = stripTwikooCdn(fs.readFileSync(file, 'utf8'));
-  const store = loadStore();
   const sitePath = toSitePath(file);
-  const layoutBlocks = blocksStore.getLayout(sitePath);
-  let output;
-  if (layoutBlocks) {
-    output = applyLayout(html, sitePath, layoutBlocks);
-  } else {
-    output = applyOverrides(html, sitePath, store, options);
-  }
+  const blocks = blocksStore.getLayout(sitePath) || [];
+  let output = applyLayout(html, sitePath, blocks);
   output = injectClientRuntime(output);
-  if (!layoutBlocks) output = injectSiteWidgets(output, sitePath);
   return output;
 }
 

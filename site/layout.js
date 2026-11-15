@@ -173,6 +173,16 @@ const TYPES = [
     fields: [{ key: 'title', label: '标题', type: 'text' }]
   },
   {
+    type: 'chart',
+    label: '在线人数图表',
+    group: '动态',
+    defaults: { title: '服务器在线人数', hours: 2 },
+    fields: [
+      { key: 'title', label: '标题', type: 'text' },
+      { key: 'hours', label: '显示小时数（1~24）', type: 'number' }
+    ]
+  },
+  {
     type: 'comments',
     label: '评论区',
     group: '动态',
@@ -180,6 +190,47 @@ const TYPES = [
     fields: [
       { key: 'title', label: '标题', type: 'text' },
       { key: 'path', label: '评论路径（留空=当前页面）', type: 'text' }
+    ]
+  },
+  {
+    type: 'changelog',
+    label: '更新日志',
+    group: '动态',
+    defaults: { title: '更新日志', limit: 0 },
+    fields: [
+      { key: 'title', label: '标题', type: 'text' },
+      { key: 'limit', label: '显示条数（0=全部）', type: 'number' }
+    ]
+  },
+  {
+    type: 'commands',
+    label: '服务器指令',
+    group: '动态',
+    defaults: { title: '服务器指令' },
+    fields: [{ key: 'title', label: '标题', type: 'text' }]
+  },
+  {
+    type: 'navdata',
+    label: '导航（数据库）',
+    group: '导航',
+    defaults: { title: '快速导航' },
+    fields: [{ key: 'title', label: '标题', type: 'text' }]
+  },
+  {
+    type: 'timelineData',
+    label: '发展历程（数据库）',
+    group: '内容',
+    defaults: { title: '发展历程' },
+    fields: [{ key: 'title', label: '标题', type: 'text' }]
+  },
+  {
+    type: 'galleryData',
+    label: '图廊（数据库）',
+    group: '媒体',
+    defaults: { title: '图廊', limit: 0 },
+    fields: [
+      { key: 'title', label: '标题', type: 'text' },
+      { key: 'limit', label: '显示数量（0=全部）', type: 'number' }
     ]
   },
   {
@@ -433,11 +484,33 @@ function bodyHtml(type, props, ctx) {
     case 'status':
       return `<section class="qy-block"><div class="qy-status-card"><h3>${esc(p.title || '服务器状态')}</h3>` +
         `<div class="qy-widget-status" data-qy-widget="status"><span class="qy-site-widget-empty">服务器状态加载中…</span></div></div></section>`;
+    case 'chart': {
+      const hours = Math.max(1, Math.min(24, Number(p.hours) || 2));
+      return `<section class="qy-block"><div class="qy-chart-card"><h3 class="qy-chart-title">${esc(p.title || '服务器在线人数')}</h3>` +
+        `<canvas class="qy-chart-canvas" data-qy-chart data-hours="${hours}"></canvas></div></section>`;
+    }
     case 'comments': {
       const commentPath = p.path || (ctx && ctx.sitePath) || '/';
       return `<section class="qy-block"><div class="qy-comments-block"><h3>${esc(p.title || '玩家评论')}</h3>` +
         `<div class="qy-comments-mount" data-qy-comments data-qy-path="${esc(commentPath)}"></div></div></section>`;
     }
+    case 'changelog':
+      return `<section class="qy-block"><div class="qy-data-block"><h3 class="qy-data-title">${esc(p.title || '更新日志')}</h3>` +
+        `<div class="qy-data" data-qy-data="changelog" data-limit="${Math.max(0, Number(p.limit) || 0)}">` +
+        `<div class="qy-data-loading">加载中…</div></div></div></section>`;
+    case 'commands':
+      return `<section class="qy-block"><div class="qy-data-block"><h3 class="qy-data-title">${esc(p.title || '服务器指令')}</h3>` +
+        `<div class="qy-data" data-qy-data="commands"><div class="qy-data-loading">加载中…</div></div></div></section>`;
+    case 'navdata':
+      return `<section class="qy-block"><div class="qy-data-block"><h3 class="qy-data-title">${esc(p.title || '快速导航')}</h3>` +
+        `<div class="qy-data" data-qy-data="nav"><div class="qy-data-loading">加载中…</div></div></div></section>`;
+    case 'timelineData':
+      return `<section class="qy-block"><div class="qy-data-block"><h3 class="qy-data-title">${esc(p.title || '发展历程')}</h3>` +
+        `<div class="qy-data" data-qy-data="timeline"><div class="qy-data-loading">加载中…</div></div></div></section>`;
+    case 'galleryData':
+      return `<section class="qy-block"><div class="qy-data-block"><h3 class="qy-data-title">${esc(p.title || '图廊')}</h3>` +
+        `<div class="qy-data" data-qy-data="gallery" data-limit="${Math.max(0, Number(p.limit) || 0)}">` +
+        `<div class="qy-data-loading">加载中…</div></div></div></section>`;
     case 'iframe': {
       if (!p.url) return '';
       const height = Math.max(160, Math.min(1600, Number(p.height) || 460));
