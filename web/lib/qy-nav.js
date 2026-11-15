@@ -19,6 +19,9 @@
     var GLOBAL_CSS = [/\/lib\/all\.css(?:\?|$)/, /fontawesome-free/];
     var PERMANENT = '#menu-box, #footer, #musicControl, #bgMusic, #page-loader, #qy-scrollbar, #qy-toast, #qy-nav-progress, #qy-edit-bar, #qy-hint, [data-qy-global]';
 
+    var nativeSetTimeout = window.setTimeout;
+    var nativeSetInterval = window.setInterval;
+
     var state = {
         contentNodes: [],
         pageStyles: [],
@@ -108,7 +111,7 @@
     }
 
     function trackedSetTimeout(fn, delay) {
-        var id = window.setTimeout(function () {
+        var id = nativeSetTimeout(function () {
             state.timers.delete(id);
             try { fn(); } catch (error) { console.warn('[qy-nav]', error); }
         }, delay);
@@ -117,7 +120,7 @@
     }
 
     function trackedSetInterval(fn, delay) {
-        var id = window.setInterval(function () {
+        var id = nativeSetInterval(function () {
             try { fn(); } catch (error) { console.warn('[qy-nav]', error); }
         }, delay);
         state.timers.add(id);
