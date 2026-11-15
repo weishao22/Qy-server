@@ -286,6 +286,9 @@
         }
 
         document.addEventListener('DOMContentLoaded', loadNav);
+if (document.readyState !== 'loading') {
+    loadNav();
+}
     </script>
 </body>
 
