@@ -4,9 +4,12 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const settings = require('../settings');
+const rateLimit = require('express-rate-limit');
 
 const COMMENTS_FILE = path.join(settings.DATA_DIR, 'comments.json');
 const VIEWS_FILE = path.join(settings.DATA_DIR, 'views.json');
+
+const commentPostLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, message: { error: '评论发送过于频繁，请稍后再试。' } });
 
 let comments = [];
 let views = {};
@@ -107,7 +110,7 @@ function mount(app) {
     res.json({ path: pagePath, comments: listByPath(pagePath, limit), enabled: true });
   });
 
-  app.post('/api/comments', (req, res) => {
+  app.post('/api/comments', commentPostLimiter, (req, res) => {
     const config = settings.comments();
     if (!config.enabled) {
       res.status(403).json({ error: '评论功能已关闭' });

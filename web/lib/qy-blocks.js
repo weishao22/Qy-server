@@ -146,7 +146,7 @@
             var rows = limit > 0 ? list.slice(0, limit) : list;
             dataDone(node, '<div class="qy-changelog">' + rows.map(function (item) {
                 var content = Array.isArray(item.content) ? item.content.join('\n') : String(item.content || '');
-                var html = content.replace(/\n/g, '<br>').replace(/&lt;img(.*?)&gt;/g, '<img$1>');
+                var html = content.replace(/\n/g, '<br>');
                 return '<div class="qy-changelog-item">' +
                     '<div class="qy-changelog-date">' + esc(item.date || '') + '</div>' +
                     '<div class="qy-changelog-title">' + esc(item.title || '') + '</div>' +

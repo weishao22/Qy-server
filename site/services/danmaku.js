@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const { WebSocketServer, WebSocket } = require('ws');
 const settings = require('../settings');
+const auth = require('../auth');
 
 const WS_PATHS = new Set(['/api/danmaku/ws', '/ws', '/danmaku/ws']);
 const MAX_RECENT = 80;
@@ -81,6 +82,17 @@ function mount(httpServer, app) {
     socket.destroy();
   }
 
+  function parseCookie(header) {
+    const out = {};
+    if (!header) return out;
+    for (const part of header.split(';')) {
+      const index = part.indexOf('=');
+      if (index < 0) continue;
+      out[part.slice(0, index).trim()] = decodeURIComponent(part.slice(index + 1).trim());
+    }
+    return out;
+  }
+
   httpServer.on('upgrade', (request, socket, head) => {
     let pathname = '';
     try {
@@ -91,6 +103,11 @@ function mount(httpServer, app) {
     }
     if (!WS_PATHS.has(pathname)) {
       reject(socket, 404, 'Not Found');
+      return;
+    }
+    const token = parseCookie(request.headers.cookie)['qy_admin'] || '';
+    if (!auth.validateSession(token)) {
+      reject(socket, 401, 'Unauthorized');
       return;
     }
     wss.handleUpgrade(request, socket, head, (ws) => {

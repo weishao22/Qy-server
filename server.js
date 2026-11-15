@@ -387,6 +387,11 @@ app.use(function (req, res, next) {
   next();
 });
 app.use(express.json({ limit: '12mb' }));
+
+const loginLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 20, message: { error: '登录尝试过于频繁，请稍后再试。' } });
+const passwordLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 10, message: { error: '修改密码过于频繁，请稍后再试。' } });
+const commentLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, message: { error: '评论发送过于频繁，请稍后再试。' } });
+
 app.use(function (req, res, next) {
     if (req.method === 'OPTIONS') return next();
     const source = req.get('Origin') || req.get('Referer');
@@ -401,6 +406,22 @@ app.use(function (req, res, next) {
     if (!/^\/api\/ai(\/|$)/.test(req.path)) return next();
     res.status(403).json({ error: 'Hotlink denied' });
 });
+
+function csrfCheck(req, res, next) {
+    if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return next();
+    const path = req.path;
+    if (!path.startsWith('/api/admin/') && !path.startsWith('/api/site/layout') && path !== '/api/comments') return next();
+    const source = req.get('Origin') || req.get('Referer');
+    if (!source) return next();
+    const match = source.match(/^https?:\/\/[^/]+/i);
+    if (!match) return next();
+    const sourceOrigin = match[0];
+    const isSame = req.headers.host && sourceOrigin.replace(/^https?:\/\//i, '') === req.headers.host;
+    if (isSame || allowedOrigins.includes(sourceOrigin)) return next();
+    res.status(403).json({ error: 'CSRF 验证失败' });
+}
+app.use(csrfCheck);
+
 app.use('/api/ai', rateLimit({ windowMs: 60000, max: 10, message: { error: '请求过于频繁，请稍后再试。' } }));
 
 const server = http.createServer(app);
@@ -542,7 +563,7 @@ function clearSessionCookie(res) {
 
 /* ---------------- 认证 ---------------- */
 
-app.post('/api/admin/login', (req, res) => {
+app.post('/api/admin/login', loginLimiter, (req, res) => {
   const { password } = req.body || {};
   if (typeof password !== 'string' || !password) {
     res.status(400).json({ error: '请输入密码' });
@@ -572,7 +593,7 @@ app.get('/api/admin/session', (req, res) => {
   });
 });
 
-app.post('/api/admin/password', requireAuth, (req, res) => {
+app.post('/api/admin/password', requireAuth, passwordLimiter, (req, res) => {
   const { current, next } = req.body || {};
   const result = auth.changePassword(current, next);
   if (!result.ok) {
@@ -707,6 +728,19 @@ app.post('/api/admin/layout/import-static', requireAuth, (req, res) => {
   res.json({ ok: true, path: sitePath, blocks });
 });
 
+function isValidImage(buffer, ext) {
+  if (!buffer || buffer.length < 4) return false;
+  const b = buffer;
+  if (ext === 'png') return b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47;
+  if (ext === 'jpg' || ext === 'jpeg') return b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
+  if (ext === 'gif') return b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x38;
+  if (ext === 'webp') {
+    return b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46
+      && b.length >= 12 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50;
+  }
+  return false;
+}
+
 function saveUpload(body) {
   const raw = String((body && body.data) || '');
   let base64 = '';
@@ -724,6 +758,7 @@ function saveUpload(body) {
   }
   const buffer = Buffer.from(base64, 'base64');
   if (!buffer.length || buffer.length > 8 * 1024 * 1024) return null;
+  if (!isValidImage(buffer, ext)) return null;
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
   const name = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}.${ext}`;
   fs.writeFileSync(path.join(UPLOAD_DIR, name), buffer);
@@ -1004,44 +1039,7 @@ app.get(/^\/(web\/)?(lib|live|search|updatelog|tools)\/.+\.js$/, (req, res, next
   }
 });
 
-app.use(
-  express.static(ROOT, {
-    index: false,
-    setHeaders(res, filePath) {
-      if (/\.(woff2?|ttf|svg|png|jpe?g|webp|gif|ico|mp3|mp4|webm)$/i.test(filePath)) {
-        res.setHeader('Cache-Control', 'public, max-age=604800');
-      }
-    }
-  })
-);
-
-app.use(express.static(WEB_DIR, {
-  index: false,
-  setHeaders(res, filePath) {
-    if (/\.(js|css)$/i.test(filePath)) {
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-    } else if (/\.(woff2?|ttf|svg|png|jpe?g|webp|gif|ico|mp3|mp4|webm)$/i.test(filePath)) {
-      res.setHeader('Cache-Control', 'public, max-age=604800');
-    }
-  }
-}));
-
-app.use((req, res) => {
-  const file = path.join(ROOT, '404.html');
-  res.status(404);
-  if (fs.existsSync(file)) {
-    const html = cms.renderPage(file);
-    res.setHeader('Content-Type', MIME['.html']);
-    res.send(html);
-    return;
-  }
-  res.type('text/plain').send('404 Not Found');
-});
-
-app.use((error, req, res, _next) => {
-  console.error(error);
-  res.status(500).json({ error: '服务器内部错误' });
-});
+// 静态资源中间件已移至文件末尾（所有 API 路由之后）
 
 // ==================== AI API 路由 ====================
 
@@ -1198,6 +1196,46 @@ app.get('/api/health', (req, res) => {
 // API 兜底 404 —— 必须放在所有 /api/* 路由之后，否则会拦截后面的接口
 app.use('/api', (req, res) => {
   res.status(404).json({ error: 'Not Found' });
+});
+
+// 静态资源中间件与兜底 404 页面（放在所有 API 路由之后）
+app.use(
+  express.static(ROOT, {
+    index: false,
+    setHeaders(res, filePath) {
+      if (/\.(woff2?|ttf|svg|png|jpe?g|webp|gif|ico|mp3|mp4|webm)$/i.test(filePath)) {
+        res.setHeader('Cache-Control', 'public, max-age=604800');
+      }
+    }
+  })
+);
+
+app.use(express.static(WEB_DIR, {
+  index: false,
+  setHeaders(res, filePath) {
+    if (/\.(js|css)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    } else if (/\.(woff2?|ttf|svg|png|jpe?g|webp|gif|ico|mp3|mp4|webm)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=604800');
+    }
+  }
+}));
+
+app.use((req, res) => {
+  const file = path.join(ROOT, '404.html');
+  res.status(404);
+  if (fs.existsSync(file)) {
+    const html = cms.renderPage(file);
+    res.setHeader('Content-Type', MIME['.html']);
+    res.send(html);
+    return;
+  }
+  res.type('text/plain').send('404 Not Found');
+});
+
+app.use((error, req, res, _next) => {
+  console.error(error);
+  res.status(500).json({ error: '服务器内部错误' });
 });
 
 server.listen(PORT, HOST, () => {

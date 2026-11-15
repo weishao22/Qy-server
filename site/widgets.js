@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const settings = require('./settings');
+const { sanitizeHtml } = require('./sanitize');
 
 const FILE = path.join(settings.DATA_DIR, 'widgets.json');
 
@@ -107,7 +108,7 @@ function renderSiteWidget(widget) {
     return `<div class="qy-site-widget" data-qy-widget-card="${widget.id}">${title}<div class="qy-site-widget-body">${text}</div></div>`;
   }
   if (widget.type === 'html') {
-    return `<div class="qy-site-widget" data-qy-widget-card="${widget.id}">${title}<div class="qy-site-widget-body">${widget.config.html || ''}</div></div>`;
+    return `<div class="qy-site-widget" data-qy-widget-card="${widget.id}">${title}<div class="qy-site-widget-body">${sanitizeHtml(widget.config.html || '')}</div></div>`;
   }
   if (widget.type === 'links') {
     const links = Array.isArray(widget.config.links) ? widget.config.links : [];

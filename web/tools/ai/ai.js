@@ -104,7 +104,8 @@
         const div = document.createElement('div');
         div.className = 'msg ' + role;
         if (role === 'bot' && text && typeof marked === 'function') {
-            div.innerHTML = marked.parse(text);
+            const html = marked.parse(text);
+            div.innerHTML = typeof window.DOMPurify === 'function' ? window.DOMPurify.sanitize(html) : html;
         } else {
             div.textContent = text;
         }
@@ -236,7 +237,8 @@
             ensureBotContainer();
             if (botMessageDiv) {
                 if (typeof marked === 'function') {
-                    botMessageDiv.innerHTML = marked.parse(text);
+                    const html = marked.parse(text);
+                    botMessageDiv.innerHTML = typeof window.DOMPurify === 'function' ? window.DOMPurify.sanitize(html) : html;
                 } else {
                     botMessageDiv.textContent = text;
                 }
@@ -248,7 +250,8 @@
             ensureBotContainer();
             if (botMessageDiv) {
                 if (typeof marked === 'function') {
-                    botMessageDiv.innerHTML = marked.parse(text);
+                    const html = marked.parse(text);
+                    botMessageDiv.innerHTML = typeof window.DOMPurify === 'function' ? window.DOMPurify.sanitize(html) : html;
                 } else {
                     botMessageDiv.textContent = text;
                 }

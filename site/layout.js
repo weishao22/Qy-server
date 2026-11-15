@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const settings = require('./settings');
+const { sanitizeHtml } = require('./sanitize');
 
 const FILE = path.join(settings.DATA_DIR, 'pages-layout.json');
 let cache = { mtime: 0, data: null };
@@ -395,7 +396,7 @@ function bodyHtml(type, props, ctx) {
       return `<section class="qy-block"><h${level} class="qy-heading">${esc(p.text || '')}</h${level}></section>`;
     }
     case 'text':
-      return `<section class="qy-block qy-text">${p.html || ''}</section>`;
+      return `<section class="qy-block qy-text">${sanitizeHtml(p.html || '')}</section>`;
     case 'markdown':
       return `<section class="qy-block"><div class="qy-md" data-qy-md>${esc(p.text || '')}</div></section>`;
     case 'quote':
@@ -518,7 +519,7 @@ function bodyHtml(type, props, ctx) {
     }
     case 'html':
     case 'raw':
-      return `<section class="qy-block qy-raw">${p.html || ''}</section>`;
+      return `<section class="qy-block qy-raw">${sanitizeHtml(p.html || '')}</section>`;
     case 'divider':
       return `<section class="qy-block"><hr class="qy-divider"></section>`;
     case 'spacer':
