@@ -351,6 +351,9 @@
             }
 
             document.addEventListener('DOMContentLoaded', loadCommands);
+if (document.readyState !== 'loading') {
+    loadCommands();
+}
         </script>
 
         <script src="/lib/all.js"></script>

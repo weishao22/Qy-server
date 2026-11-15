@@ -3,6 +3,9 @@
 window.addEventListener('load', function () {
     loadChangelog();
 });
+if (document.readyState !== 'loading') {
+    loadChangelog();
+}
 
 // 导航栏滚动效果（与之前页面一致）
 window.addEventListener('scroll', function () {
@@ -28,6 +31,16 @@ window.addEventListener('scroll', function () {
     }
 });
 
+function escHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>]/g, function (m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+
 function loadChangelog() {
     fetch('/api/content/changelog_entry?t=' + Date.now())
         .then(res => res.json())
@@ -47,14 +60,12 @@ function loadChangelog() {
                 content = typeof content === "string"
                     ? content
                     : content.join("\n");
-                let html = content
-                    .replace(/\n/g, '<br>')
-                    .replace(/&lt;img(.*?)&gt;/g, '<img$1>');
+                let html = content.replace(/\n/g, '<br>');
 
                 return `
                     <div class="changelog-item">
-                        <div class="changelog-date">${item.date}</div>
-                        <div class="changelog-title">${item.title}</div>
+                        <div class="changelog-date">${escHtml(item.date || '')}</div>
+                        <div class="changelog-title">${escHtml(item.title || '')}</div>
                         <div class="changelog-content">${html}</div>
                     </div>`;
             }).join('');

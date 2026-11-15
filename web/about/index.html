@@ -970,46 +970,68 @@
         });
 
         // 评论由 /lib/comments-widget.js 统一初始化（支持后台配置的第三方评论）
-        // 加载配置文件并渲染时间线（从内容数据库 API 读取）
-        async function loadTimeline() {
-            try {
-                const response = await fetch('/api/content/timeline_entry?t=' + Date.now());
-                const data = await response.json();
-                const timelineContainer = document.querySelector('.timeline');
+// 加载配置文件并渲染时间线（从内容数据库 API 读取）
+async function loadTimeline() {
+    const timelineContainer = document.querySelector('.timeline');
+    if (!timelineContainer) return;
 
-                if (!timelineContainer) return;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-                const items = (data.items || []).map(item => {
-                    try { return JSON.parse(item.value || '{}'); } catch { return {}; }
-                }).filter(item => item.date || item.description || item.title);
+    try {
+        const response = await fetch('/api/content/timeline_entry?t=' + Date.now(), {
+            signal: controller.signal,
+            credentials: 'same-origin'
+        });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const data = await response.json();
 
-                timelineContainer.innerHTML = items.map(item => `
-                    <div class="timeline-item">
-                        <div class="timeline-content">
-                            <div class="timeline-date">${escapeHtml(item.date || '')}</div>
-                            <p>${escapeHtml(item.description || item.title || '').replace(/\n/g, '<br>')}</p>
-                        </div>
+        const items = (data.items || []).map(item => {
+            try { return JSON.parse(item.value || '{}'); } catch { return {}; }
+        }).filter(item => item.date || item.description || item.title);
+
+        if (items.length) {
+            timelineContainer.innerHTML = items.map(item => `
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <div class="timeline-date">${escapeHtml(item.date || '')}</div>
+                        <p>${escapeHtml(item.description || item.title || '').replace(/\n/g, '<br>')}</p>
                     </div>
-                `).join('');
-            } catch (error) {
-                console.error('加载发展历程失败:', error);
-            }
+                </div>
+            `).join('');
+        } else {
+            timelineContainer.innerHTML = '<div style="text-align:center;padding:40px;color:#999;">暂无发展历程记录</div>';
         }
-
-        // 简单的防XSS辅助函数
-        function escapeHtml(str) {
-            return str.replace(/[&<>]/g, function (m) {
-                if (m === '&') return '&amp;';
-                if (m === '<') return '&lt;';
-                if (m === '>') return '&gt;';
-                return m;
-            }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function (c) {
-                return c;
-            });
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            timelineContainer.innerHTML = '<div style="text-align:center;padding:40px;color:#e0566f;">加载超时，请刷新页面重试</div>';
+        } else {
+            console.error('加载发展历程失败:', error);
+            timelineContainer.innerHTML = '<div style="text-align:center;padding:40px;color:#e0566f;">加载失败，请刷新页面重试</div>';
         }
+    } finally {
+        clearTimeout(timeoutId);
+    }
+}
 
-        // 页面加载时调用
-        document.addEventListener('DOMContentLoaded', loadTimeline);
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>]/g, function (m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function (c) {
+        return c;
+    });
+}
+
+// 页面加载时调用（支持首次加载和 SPA 切换后立即执行）
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadTimeline);
+} else {
+    loadTimeline();
+}
 
         // ========== 动态计算运行天数 ==========
         (function () {
