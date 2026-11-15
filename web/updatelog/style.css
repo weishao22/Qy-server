@@ -1,6 +1,6 @@
 .container {
     /* 主内容容器，设置最大宽度、最小宽度、居中、圆角、阴影和内边距，并添加毛玻璃效果 */
-    max-width: 1000px;
+    max-width: 1200px;
     min-width: 500px;
     margin: 0 auto;
     background: rgba(255, 255, 255, 0.6);
@@ -16,7 +16,7 @@
 .nav-container {
   display: flex;
   align-items: center;
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0.5em 1em;
   justify-content: space-between;
@@ -24,7 +24,7 @@
 .nav-container {
   display: flex;
   align-items: center;
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0.5em 1em;
   justify-content: space-between;
