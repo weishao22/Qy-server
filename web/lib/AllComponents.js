@@ -455,10 +455,14 @@
 
     // 注入到页面（导航栏与页脚在 DOMContentLoaded 时注入；加载动画已尽早插入）
     document.addEventListener('DOMContentLoaded', function () {
-        // 在 body 开头插入导航栏
-        document.body.insertAdjacentHTML('afterbegin', navbarHTML);
-        // 在 body 结尾插入页脚和音乐控制
-        document.body.insertAdjacentHTML('beforeend', footerHTML + musicHTML);
+        // 在 body 开头插入导航栏（已存在则不重复插入）
+        if (!document.getElementById('menu-box')) {
+            document.body.insertAdjacentHTML('afterbegin', navbarHTML);
+        }
+        // 在 body 结尾插入页脚和音乐控制（已存在则不重复插入）
+        if (!document.getElementById('footer')) {
+            document.body.insertAdjacentHTML('beforeend', footerHTML + musicHTML);
+        }
         // 加载动画已通过 document.write 注入，DOMContentLoaded 中不再重复插入
 
         // --- 移动端菜单交互逻辑 ---

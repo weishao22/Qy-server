@@ -376,6 +376,16 @@ const MIME = {
 
 const app = express();
 app.disable('x-powered-by');
+app.disable('etag');
+app.use(function (req, res, next) {
+  // 动态接口一律不缓存，避免浏览器条件请求返回 304 导致前端 fetch 判定失败
+  if (/^\/api(\/|$)/.test(req.path) && (req.method === 'GET' || req.method === 'HEAD')) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
 app.use(express.json({ limit: '12mb' }));
 app.use(function (req, res, next) {
     if (req.method === 'OPTIONS') return next();
@@ -864,10 +874,6 @@ app.get('/api/admin/overview', requireAuth, (req, res) => {
   });
 });
 
-app.use('/api', (req, res) => {
-  res.status(404).json({ error: 'Not Found' });
-});
-
 /* ---------------- 后台页面 ---------------- */
 
 app.get(['/admin', '/admin/'], (req, res) => {
@@ -1187,6 +1193,11 @@ app.post('/api/ai/stream', async (req, res) => {
 
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', model: aiConfig.model, timestamp: Date.now() });
+});
+
+// API 兜底 404 —— 必须放在所有 /api/* 路由之后，否则会拦截后面的接口
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'Not Found' });
 });
 
 server.listen(PORT, HOST, () => {

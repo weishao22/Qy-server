@@ -171,6 +171,7 @@ function mount(app) {
   loadHistory();
 
   app.get('/api/status', async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     const now = Date.now();
     if (cache && now - cacheTime < CACHE_TTL) {
       res.json(cache);
@@ -185,6 +186,7 @@ function mount(app) {
   });
 
   app.get('/api/history', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     prune();
     res.json(
       history
@@ -195,6 +197,7 @@ function mount(app) {
   });
 
   app.get('/api/all', async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     try {
       res.json(await cluster());
     } catch (error) {

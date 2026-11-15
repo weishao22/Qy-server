@@ -4,6 +4,8 @@
     window.__qyNav = true;
 
     var GLOBAL_SCRIPT = [/\/lib\/all\.js(?:\?|$)/, /\/lib\/AllComponents\.js(?:\?|$)/, /\/lib\/qy-nav\.js(?:\?|$)/, /\/lib\/comments-widget\.js(?:\?|$)/, /twikoo(?:\.min)?\.js/i];
+    // 无刷新导航开关（保持开启）
+    var SPA_ENABLED = true;
     var ONCE_SCRIPT = [
         /\/lib\/marked\.min\.js(?:\?|$)/,
         /\/lib\/chart\.min\.js(?:\?|$)/,
@@ -425,21 +427,22 @@
     function init() {
         if (state.initialized) return;
         state.initialized = true;
-        ensureProgressStyle();
-        captureInitial();
+        if (SPA_ENABLED) {
+            ensureProgressStyle();
+            captureInitial();
+            document.addEventListener('click', function (event) {
+                if (event.defaultPrevented) return;
+                if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                var anchor = event.target && event.target.closest ? event.target.closest('a') : null;
+                if (!shouldHandle(anchor)) return;
+                event.preventDefault();
+                navigate(anchor.href, { push: true });
+            });
 
-        document.addEventListener('click', function (event) {
-            if (event.defaultPrevented) return;
-            if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-            var anchor = event.target && event.target.closest ? event.target.closest('a') : null;
-            if (!shouldHandle(anchor)) return;
-            event.preventDefault();
-            navigate(anchor.href, { push: true });
-        });
-
-        window.addEventListener('popstate', function () {
-            navigate(location.href, { push: false, force: true });
-        });
+            window.addEventListener('popstate', function () {
+                navigate(location.href, { push: false, force: true });
+            });
+        }
 
         if (window.QYComments) {
             window.QYComments.recordView(location.pathname);
