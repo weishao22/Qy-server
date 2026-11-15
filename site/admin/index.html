@@ -130,6 +130,63 @@
             <div id="comment-list" class="comment-list"></div>
         </section>
 
+        <section class="view" id="view-datacontent" hidden>
+            <div class="view-head">
+                <div>
+                    <h2>内容库</h2>
+                    <p class="view-sub">管理图廊、更新日志、时间线、导航、指令、FAQ 等全部内容；所有数据保存在本地 SQLite 数据库。</p>
+                </div>
+                <div class="view-actions">
+                    <button type="button" class="btn-primary" id="db-new">新建内容</button>
+                    <button type="button" class="btn-ghost" id="db-refresh">刷新</button>
+                </div>
+            </div>
+
+            <div class="layout">
+                <aside class="sidebar">
+                    <div class="sidebar-head">
+                        <span style="font-weight:700;color:var(--pink-deep);font-size:13px;">内容类型</span>
+                    </div>
+                    <nav id="db-type-list" class="page-list"></nav>
+                </aside>
+
+                <main class="editor">
+                    <div class="editor-head">
+                        <div>
+                            <h2 id="db-list-title">请选择左侧内容类型</h2>
+                            <p class="editor-meta" id="db-list-meta"></p>
+                        </div>
+                    </div>
+
+                    <div id="db-list" class="entries"></div>
+                    <div class="empty-state" id="db-empty">
+                        <p>选择左侧内容类型查看列表</p>
+                    </div>
+
+                    <div id="db-form-wrap" hidden>
+                        <div class="editor-head">
+                            <div>
+                                <h2 id="db-form-title">编辑内容</h2>
+                                <p class="editor-meta" id="db-form-meta"></p>
+                            </div>
+                            <div class="editor-head-actions">
+                                <button type="button" class="btn-ghost" id="db-cancel">取消</button>
+                                <button type="button" class="btn-primary" id="db-save">保存</button>
+                                <button type="button" class="btn-ghost danger" id="db-delete">删除</button>
+                            </div>
+                        </div>
+                        <form id="db-form" class="settings-card">
+                            <input type="hidden" id="db-id">
+                            <label class="field"><span>类型</span><input type="text" id="db-type" readonly></label>
+                            <label class="field"><span>键名（唯一标识，可留空自动生成）</span><input type="text" id="db-key" placeholder="例如 gallery-001"></label>
+                            <div id="db-fields"></div>
+                            <label class="field"><span>排序（数字越小越靠前）</span><input type="number" id="db-sortOrder" value="0"></label>
+                        </form>
+                    </div>
+                </main>
+            </div>
+        </section>
+
         <section class="view" id="view-settings" hidden>
             <div class="view-head">
                 <div>
@@ -219,8 +276,8 @@
 
     <div class="toast" id="toast" hidden></div>
 
-    <script src="/admin-assets/app.js"></script>
-    <script src="/admin-assets/dashboard.js"></script>
+    <script src="/admin-assets/app.js?v=20261115d"></script>
+    <script src="/admin-assets/dashboard.js?v=20261115d"></script>
 </body>
 
 </html>
