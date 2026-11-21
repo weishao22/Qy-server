@@ -19,7 +19,6 @@ const mcstatus = require('./site/services/mcstatus');
 const danmakuService = require('./site/services/danmaku');
 const commentsService = require('./site/services/comments');
 const layoutStore = require('./site/layout');
-const migrator = require('./site/migrate');
 const contentDb = require('./site/db');
 
 // ==================== AI 配置 ====================
@@ -346,6 +345,7 @@ const WEB_DIR = path.join(ROOT, 'web');
 const PORT = Number(process.env.PORT) || 5000;
 const HOST = process.env.HOST || '0.0.0.0';
 const ADMIN_DIR = path.join(__dirname, 'site', 'admin');
+const adminEnabled = auth.initialize();
 
 const RESERVED = new Set(['data', 'site', 'server', 'node_modules', '.git', '.kilo', 'test']);
 
@@ -447,24 +447,19 @@ app.get('/api/site-config', (req, res) => {
 
 /* ---------------- 内容数据（数据库，替代 JSON 文件） ---------------- */
 
-function ensureSeeded() {
-  const all = contentDb.list('gallery_image').concat(
-    contentDb.list('changelog_entry'),
-    contentDb.list('timeline_entry'),
-    contentDb.list('nav_item'),
-    contentDb.list('command'),
-    contentDb.list('popup_announcement'),
-    contentDb.list('faq_item'),
-    contentDb.list('faq_content')
-  );
-  if (!all.length) {
-    contentDb.seedFromJson();
-  }
-}
+const CONTENT_TYPES = new Set([
+  'gallery_image', 'changelog_entry', 'timeline_entry', 'nav_item', 'command',
+  'popup_announcement', 'faq_item', 'faq_content'
+]);
+
+contentDb.db.transaction(() => {
+  if (contentDb.db.pragma('user_version', { simple: true }) !== 0) return;
+  if (!contentDb.db.prepare('SELECT 1 FROM content LIMIT 1').get()) contentDb.seedFromJson();
+  contentDb.db.pragma('user_version = 1');
+})();
 
 app.get('/api/content/:type', (req, res) => {
   const type = req.params.type;
-  ensureSeeded();
   const rows = contentDb.list(type);
   res.setHeader('Cache-Control', 'no-cache');
   res.json({ type, items: rows });
@@ -481,9 +476,8 @@ app.get('/api/popup', (req, res) => {
 });
 
 app.get('/api/admin/content', requireAuth, (req, res) => {
-  ensureSeeded();
   const type = req.query.type;
-  const rows = type ? contentDb.list(type) : [];
+  const rows = CONTENT_TYPES.has(type) ? contentDb.list(type) : [];
   res.json({ items: rows });
 });
 
@@ -493,31 +487,54 @@ app.get('/api/admin/content/:id', requireAuth, (req, res) => {
   res.json(row);
 });
 
-app.put('/api/admin/content/:id', requireAuth, express.json(), (req, res) => {
-  const id = Number(req.params.id);
-  const { type, key, title, description, value, route, sortOrder } = req.body;
-  if (!type || !key) return res.status(400).json({ error: 'type and key required' });
-  contentDb.upsert({ id, type, key, title, description, value, route, sortOrder });
-  const row = contentDb.get(id);
-  res.json(row);
-});
+function saveContent(req, res, next) {
+  const editing = req.params.id !== undefined;
+  const current = editing ? contentDb.get(Number(req.params.id)) : null;
+  if (editing && !current) return res.status(404).json({ error: '找不到该内容' });
+  const { type, key, title, description, value, route, sortOrder } = req.body || {};
+  if (!CONTENT_TYPES.has(type) || typeof key !== 'string' || !key.trim() || typeof value !== 'string') {
+    return res.status(400).json({ error: '内容类型、标识或正文格式无效' });
+  }
+  const normalizedKey = key.trim();
+  if (current && (type !== current.type || (type.startsWith('faq_') && normalizedKey !== current.key))) {
+    return res.status(400).json({ error: '不能修改内容类型或已有 FAQ 的编号' });
+  }
+  if (type !== 'faq_content') {
+    let parsed;
+    try { parsed = JSON.parse(value); } catch { /* Rejected below. */ }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || (type === 'faq_item' && parsed.id !== normalizedKey)) {
+      return res.status(400).json({ error: '内容必须是有效对象，FAQ 编号必须与标识一致' });
+    }
+  }
+  const item = {
+    type, key: normalizedKey, value,
+    title: typeof title === 'string' ? title : '',
+    description: typeof description === 'string' ? description : '',
+    route: typeof route === 'string' ? route : current?.route || '',
+    sortOrder: Number.isSafeInteger(sortOrder) ? sortOrder : 0
+  };
+  try {
+    if (current) {
+      contentDb.update(current.id, item);
+      return res.json(contentDb.get(current.id));
+    }
+    return res.status(201).json(contentDb.get(contentDb.insert(item)));
+  } catch (error) {
+    if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') return res.status(409).json({ error: '该类型下已有相同标识' });
+    return next(error);
+  }
+}
 
-app.post('/api/admin/content', requireAuth, express.json(), (req, res) => {
-  const { type, key, title, description, value, route, sortOrder } = req.body;
-  if (!type || !key) return res.status(400).json({ error: 'type and key required' });
-  const id = contentDb.upsert({ type, key, title, description, value, route, sortOrder });
-  const row = contentDb.get(id);
-  res.status(201).json(row);
-});
+app.put('/api/admin/content/:id', requireAuth, saveContent);
+app.post('/api/admin/content', requireAuth, saveContent);
 
 app.delete('/api/admin/content/:id', requireAuth, (req, res) => {
-  contentDb.remove(Number(req.params.id));
+  if (!contentDb.remove(Number(req.params.id))) return res.status(404).json({ error: '找不到该内容' });
   res.json({ ok: true });
 });
 
 app.post('/api/admin/content/seed', requireAuth, (req, res) => {
-  contentDb.seedFromJson();
-  res.json({ ok: true, message: 'Seeded from JSON files' });
+  res.json({ ok: true, inserted: contentDb.seedFromJson() });
 });
 
 /* ---------------- 页面区块布局 ---------------- */
@@ -544,26 +561,32 @@ function getSessionToken(req) {
   return parseCookies(req).qy_admin || '';
 }
 
-function requireAuth(req, res, next) {
-  if (!auth.validateSession(getSessionToken(req))) {
+function requireSession(req, res, next) {
+  const token = getSessionToken(req);
+  if (!adminEnabled || !auth.validateSession(token)) {
     res.status(401).json({ error: '未登录或登录已过期' });
     return;
   }
-  req.adminToken = getSessionToken(req);
+  req.adminToken = token;
   next();
 }
 
-function setSessionCookie(res, token, maxAgeSeconds) {
-  res.setHeader('Set-Cookie', `qy_admin=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${maxAgeSeconds}`);
+function requireAuth(req, res, next) {
+  requireSession(req, res, () => {
+    if (auth.mustChangePassword()) return res.status(403).json({ error: '请先修改初始密码', code: 'PASSWORD_CHANGE_REQUIRED' });
+    next();
+  });
 }
 
-function clearSessionCookie(res) {
-  res.setHeader('Set-Cookie', 'qy_admin=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0');
+function setSessionCookie(req, res, token, maxAgeSeconds) {
+  const secure = req.secure || process.env.NODE_ENV === 'production' || process.env.ADMIN_COOKIE_SECURE === '1';
+  res.setHeader('Set-Cookie', `qy_admin=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${maxAgeSeconds}${secure ? '; Secure' : ''}`);
 }
 
 /* ---------------- 认证 ---------------- */
 
 app.post('/api/admin/login', loginLimiter, (req, res) => {
+  if (!adminEnabled) return res.status(503).json({ error: '管理后台尚未初始化，请配置 ADMIN_PASSWORD 后重启服务' });
   const { password } = req.body || {};
   if (typeof password !== 'string' || !password) {
     res.status(400).json({ error: '请输入密码' });
@@ -575,33 +598,32 @@ app.post('/api/admin/login', loginLimiter, (req, res) => {
   }
   auth.pruneSessions();
   const token = auth.createSession();
-  setSessionCookie(res, token, Math.floor(auth.SESSION_TTL / 1000));
+  setSessionCookie(req, res, token, Math.floor(auth.SESSION_TTL / 1000));
   res.json({ ok: true, mustChange: auth.mustChangePassword() });
 });
 
-app.post('/api/admin/logout', requireAuth, (req, res) => {
+app.post('/api/admin/logout', requireSession, (req, res) => {
   auth.destroySession(req.adminToken);
-  clearSessionCookie(res);
+  setSessionCookie(req, res, '', 0);
   res.json({ ok: true });
 });
 
 app.get('/api/admin/session', (req, res) => {
-  const authenticated = auth.validateSession(getSessionToken(req));
+  const authenticated = adminEnabled && auth.validateSession(getSessionToken(req));
   res.json({
     authenticated,
     mustChange: authenticated ? auth.mustChangePassword() : false
   });
 });
 
-app.post('/api/admin/password', requireAuth, passwordLimiter, (req, res) => {
+app.post('/api/admin/password', requireSession, passwordLimiter, (req, res) => {
   const { current, next } = req.body || {};
   const result = auth.changePassword(current, next);
   if (!result.ok) {
     res.status(400).json({ error: result.error });
     return;
   }
-  auth.destroySession(req.adminToken);
-  clearSessionCookie(res);
+  setSessionCookie(req, res, '', 0);
   res.json({ ok: true, relogin: true });
 });
 
@@ -609,10 +631,7 @@ app.post('/api/admin/password', requireAuth, passwordLimiter, (req, res) => {
 
 app.get('/api/admin/pages', requireAuth, (req, res) => {
   const store = cms.loadStore();
-  const pages = cms.listPages().map((page) => ({
-    ...page,
-    hasBlocks: Boolean((layoutStore.getLayout(page.sitePath) || []).length)
-  }));
+  const pages = cms.listPages();
   res.json({
     pages,
     sources: [...data.listSources(store), ...scripts.listSources(store)],
@@ -683,6 +702,9 @@ app.put('/api/admin/dashboard', requireAuth, (req, res) => {
     res.status(400).json({ error: '小组件数量过多' });
     return;
   }
+  if (items.some((item) => !item || !widgets.TYPES.some(({ type }) => type === item.type))) {
+    return res.status(400).json({ error: '小组件类型无效' });
+  }
   res.json({ ok: true, ...widgets.save({ widgets: items }) });
 });
 
@@ -712,21 +734,11 @@ app.post('/api/admin/block-preview', requireAuth, (req, res) => {
   res.json({ html });
 });
 
-app.post('/api/admin/layout/migrate', requireAuth, (req, res) => {
-  const force = Boolean(req.body && req.body.force);
-  const report = migrator.migrateAll({ force });
-  res.json({ ok: true, count: report.length, report });
-});
+function layoutUnavailable(req, res) {
+  res.status(409).json({ error: '区块编辑暂不可用，已有布局仍保留' });
+}
 
-app.post('/api/admin/layout/import-static', requireAuth, (req, res) => {
-  const sitePath = layoutStore.normalizePath((req.body && req.body.path) || '/');
-  const blocks = migrator.importStatic(sitePath);
-  if (!blocks) {
-    res.status(404).json({ error: '找不到对应的静态页面文件' });
-    return;
-  }
-  res.json({ ok: true, path: sitePath, blocks });
-});
+app.post(['/api/admin/layout/migrate', '/api/admin/layout/import-static'], requireAuth, layoutUnavailable);
 
 function isValidImage(buffer, ext) {
   if (!buffer || buffer.length < 4) return false;
@@ -774,26 +786,7 @@ app.post('/api/admin/upload', requireAuth, (req, res) => {
   res.json({ ok: true, url });
 });
 
-app.put('/api/site/layout', requireAuth, (req, res) => {
-  const body = req.body || {};
-  const sitePath = layoutStore.normalizePath(body.path || '/');
-  if (!Array.isArray(body.blocks)) {
-    res.status(400).json({ error: 'blocks 必须是数组' });
-    return;
-  }
-  if (body.blocks.length > 200) {
-    res.status(400).json({ error: '区块数量过多' });
-    return;
-  }
-  const blocks = layoutStore.setLayout(sitePath, body.blocks);
-  res.json({ ok: true, path: sitePath, blocks });
-});
-
-app.delete('/api/site/layout', requireAuth, (req, res) => {
-  const sitePath = layoutStore.normalizePath(req.query.path || '/');
-  const removed = layoutStore.removeLayout(sitePath);
-  res.json({ ok: true, removed, path: sitePath });
-});
+app.route('/api/site/layout').put(requireAuth, layoutUnavailable).delete(requireAuth, layoutUnavailable);
 
 /* ---------------- 设置 ---------------- */
 
@@ -1004,8 +997,7 @@ app.get(/^\/(?!api\/|admin\/?$|admin-assets\/).*/, (req, res, next) => {
     return;
   }
   try {
-    const editor = String(req.query.edit) === '1' && auth.validateSession(getSessionToken(req));
-    const html = cms.renderPage(file, { editor });
+    const html = cms.renderPage(file);
     res.setHeader('Content-Type', MIME['.html']);
     res.setHeader('Cache-Control', 'no-cache');
     res.send(html);
@@ -1243,8 +1235,7 @@ server.listen(PORT, HOST, () => {
   console.log(`管理后台: http://localhost:${PORT}/admin`);
   console.log(`MC 状态接口: /api/status  |  弹幕 WebSocket: /api/danmaku/ws`);
   console.log(`AI 对话接口: /api/ai/stream  |  健康检查: /api/health`);
-  if (auth.mustChangePassword()) {
-    console.log('首次使用请用默认密码 admin123 登录，并立即修改密码。');
-  }
+  if (!adminEnabled) console.warn('管理后台未启用：请在环境中配置至少 12 字符的 ADMIN_PASSWORD，然后重启服务。');
+  else if (auth.mustChangePassword()) console.log('请使用配置的初始密码登录后台并修改密码。');
   console.log('[db] 内容数据库 data/content.db 已就绪（唯一数据源，不再使用 JSON 文件）');
 });

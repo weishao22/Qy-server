@@ -9,7 +9,9 @@ const state = {
     query: '',
     dirty: new Map(),
     stats: { overrides: 0 },
-    saving: false
+    saving: false,
+    mustChange: false,
+    entriesRequest: 0
 };
 
 const el = (id) => document.getElementById(id);
@@ -47,19 +49,25 @@ async function api(url, options = {}) {
         showApp(false);
         throw new Error('登录已过期，请重新登录');
     }
+    if (data?.code === 'PASSWORD_CHANGE_REQUIRED' && !state.mustChange) showApp(true, true);
     if (!response.ok) {
         throw new Error((data && data.error) || `请求失败 (${response.status})`);
     }
     return data;
 }
 
-function showApp(authenticated) {
+function showApp(authenticated, mustChange = false) {
+    state.mustChange = authenticated && mustChange;
     loginView.hidden = authenticated;
-    appView.hidden = !authenticated;
-    if (authenticated) {
+    appView.hidden = !authenticated || state.mustChange;
+    if (state.mustChange) {
+        openPasswordDialog();
+    } else if (authenticated) {
         loadPages();
         switchView('dashboard');
         loadComments();
+    } else {
+        passwordModal.hidden = true;
     }
 }
 
@@ -101,10 +109,7 @@ loginForm.addEventListener('submit', async (event) => {
             body: JSON.stringify({ password })
         });
         el('login-password').value = '';
-        showApp(true);
-        if (result.mustChange) {
-            showToast('当前仍是默认密码，请尽快修改', 'error');
-        }
+        showApp(true, result.mustChange);
     } catch (error) {
         loginError.textContent = error.message;
         loginError.hidden = false;
@@ -125,16 +130,28 @@ el('logout').addEventListener('click', async () => {
 });
 
 /* ---------------- 修改密码 ---------------- */
-el('open-password').addEventListener('click', () => {
+function openPasswordDialog() {
     el('pw-error').hidden = true;
+    el('pw-required').hidden = !state.mustChange;
+    el('pw-cancel').textContent = state.mustChange ? '退出登录' : '取消';
     el('pw-current').value = '';
     el('pw-next').value = '';
     el('pw-confirm').value = '';
     passwordModal.hidden = false;
     el('pw-current').focus();
-});
+}
+el('open-password').addEventListener('click', openPasswordDialog);
 
-el('pw-cancel').addEventListener('click', () => {
+el('pw-cancel').addEventListener('click', async () => {
+    if (state.mustChange) {
+        try {
+            await api('/api/admin/logout', { method: 'POST' });
+            showApp(false);
+        } catch (error) {
+            showToast(error.message, 'error');
+        }
+        return;
+    }
     passwordModal.hidden = true;
 });
 
@@ -264,20 +281,16 @@ async function selectPage(sitePath) {
     state.currentSource = null;
     highlightPages();
     const preview = el('preview-link');
-    const visual = el('visual-link');
     if (sitePath) {
         preview.hidden = false;
         preview.href = sitePath;
-        visual.hidden = false;
-        visual.href = `${sitePath}?edit=1`;
         el('page-title').textContent = pageLabel(sitePath);
         const page = state.pages.find((p) => p.sitePath === sitePath);
         el('page-meta').textContent = page
-            ? `${page.count} 段文字 · 源文件 ${page.file}${page.hasBlocks ? ' · 已区块化（建议用“页面上直接改”）' : ''}`
+            ? `${page.count} 段文字 · 源文件 ${page.file}`
             : '';
     } else {
         preview.hidden = true;
-        visual.hidden = true;
         el('page-title').textContent = '全部页面文字';
         el('page-meta').textContent = '按页面分组浏览全站文字，修改后一次性保存';
     }
@@ -291,19 +304,20 @@ async function selectSource(route) {
     const source = state.sources.find((item) => item.route === route);
     el('preview-link').hidden = false;
     el('preview-link').href = route;
-    el('visual-link').hidden = true;
     el('page-title').textContent = source ? source.label : route;
     el('page-meta').textContent = source ? `${source.count} 条内容 · 源文件 ${source.file}` : '';
     await loadEntries();
 }
 
 async function loadEntries() {
+    const request = ++state.entriesRequest;
     const params = new URLSearchParams();
     if (state.currentSource) params.set('source', state.currentSource);
     else if (state.currentPage) params.set('page', state.currentPage);
     if (state.query) params.set('q', state.query);
     try {
         const data = await api(`/api/admin/entries?${params.toString()}`);
+        if (request !== state.entriesRequest) return;
         state.entries = data.entries;
         state.stats = data.stats;
         renderStats();
@@ -492,6 +506,7 @@ function updateSaveBar() {
 }
 
 el('discard-all').addEventListener('click', () => {
+    if (state.saving) return;
     if (!confirm('确定放弃所有未保存的修改？')) return;
     state.dirty.clear();
     renderEntries();
@@ -503,6 +518,8 @@ el('save-all').addEventListener('click', async () => {
     state.saving = true;
     const button = el('save-all');
     button.disabled = true;
+    el('discard-all').disabled = true;
+    el('entries').inert = true;
     const changes = Array.from(state.dirty.values()).map((item) => ({
         key: item.key,
         source: item.source,
@@ -525,29 +542,10 @@ el('save-all').addEventListener('click', async () => {
     } finally {
         state.saving = false;
         button.disabled = false;
+        el('discard-all').disabled = false;
+        el('entries').inert = false;
     }
 });
-
-/* ---------------- 导入静态页面到区块库 ---------------- */
-const migrateStaticBtn = el('migrate-static');
-if (migrateStaticBtn) {
-    migrateStaticBtn.addEventListener('click', async () => {
-        if (!confirm('把所有尚未区块化的静态页面导入数据库？已有区块的页面会跳过。')) return;
-        migrateStaticBtn.disabled = true;
-        try {
-            const result = await api('/api/admin/layout/migrate', {
-                method: 'POST',
-                body: JSON.stringify({ force: false })
-            });
-            showToast(`已处理 ${result.count} 个页面`, 'ok');
-            await loadPages();
-        } catch (error) {
-            showToast(error.message, 'error');
-        } finally {
-            migrateStaticBtn.disabled = false;
-        }
-    });
-}
 
 /* ---------------- 搜索 ---------------- */
 let searchTimer = null;
@@ -563,7 +561,6 @@ el('search-input').addEventListener('input', (event) => {
             el('page-title').textContent = `搜索：${value}`;
             el('page-meta').textContent = '匹配到的全站文字（含数据与文档）';
             el('preview-link').hidden = true;
-            el('visual-link').hidden = true;
         } else if (!state.currentPage && !state.currentSource) {
             el('page-title').textContent = '全部页面文字';
         }
@@ -582,7 +579,7 @@ window.addEventListener('beforeunload', (event) => {
 (async () => {
     try {
         const session = await api('/api/admin/session');
-        showApp(session.authenticated);
+        showApp(session.authenticated, session.mustChange);
     } catch {
         showApp(false);
     }
@@ -802,7 +799,8 @@ const dbState = {
     currentType: null,
     currentItem: null,
     currentParsed: {},
-    items: []
+    items: [],
+    request: 0
 };
 
 const DB_TYPE_LABELS = {
@@ -851,9 +849,11 @@ function selectDbType(type) {
 }
 
 async function loadDbItems(type) {
-    dbState.currentType = type;
+    if (type !== dbState.currentType) return;
+    const request = ++dbState.request;
     try {
-        const data = await api(`/api/content/${type}?t=${Date.now()}`);
+        const data = await api(`/api/admin/content?type=${encodeURIComponent(type)}`);
+        if (request !== dbState.request) return;
         const items = (data.items || []).map((r) => {
             try {
                 const parsed = JSON.parse(r.value || '{}');
@@ -865,6 +865,7 @@ async function loadDbItems(type) {
         dbState.items = items;
         renderDbItems(items);
     } catch (error) {
+        if (request !== dbState.request) return;
         dbState.items = [];
         renderDbItems([]);
         showToast('加载内容列表失败：' + error.message, 'error');
@@ -894,6 +895,7 @@ function renderDbItems(items) {
         const preview = (() => {
             try {
                 const p = item.parsed || {};
+                if (item.type === 'faq_content' && item.title) return item.title;
                 if (p.title) return p.title;
                 if (p.name) return p.name;
                 if (p.text) return p.text.slice(0, 30);
@@ -1014,15 +1016,18 @@ function selectDbItem(item) {
         r.classList.toggle('active', r.dataset.id == item.id);
     });
 
-    let parsed = {};
-    try { parsed = JSON.parse(item.value || '{}'); } catch { parsed = {}; }
+    const parsed = item.type === 'faq_content'
+        ? { title: item.title, content: item.value }
+        : item.parsed;
     dbState.currentParsed = parsed;
 
     el('db-id').value = item.id;
     el('db-type').value = item.type;
     el('db-key').value = item.key || '';
+    el('db-key').readOnly = item.type.startsWith('faq_');
     el('db-sortOrder').value = item.sortOrder || 0;
     renderDbFields(item.type, parsed);
+    if (item.type === 'faq_item') el('db-fields').querySelector('[data-field="id"]').readOnly = true;
     const delBtn = el('db-delete');
     if (delBtn) delBtn.hidden = false;
 
@@ -1041,6 +1046,7 @@ function newDbItem() {
     el('db-id').value = '';
     el('db-type').value = dbState.currentType;
     el('db-key').value = '';
+    el('db-key').readOnly = false;
     el('db-sortOrder').value = 0;
     renderDbFields(dbState.currentType, {});
 
@@ -1065,6 +1071,10 @@ function saveDbItem() {
     }
 
     const merged = Object.assign({}, dbState.currentParsed || {}, values);
+    if ((type === 'faq_item' && !merged.id) || (type === 'faq_content' && !key)) {
+        showToast('请填写与 FAQ 问题关联的编号', 'error');
+        return;
+    }
     if (type === 'faq_item' && merged.id) {
         key = merged.id;
     }
@@ -1074,9 +1084,9 @@ function saveDbItem() {
 
     const title = merged.title || merged.name || '';
     const description = merged.summary || merged.description || '';
-    const value = JSON.stringify(merged);
+    const value = type === 'faq_content' ? (merged.content ?? '') : JSON.stringify(merged);
 
-    const payload = { type, key, title, description, value, route: '', sortOrder };
+    const payload = { type, key, title, description, value, sortOrder };
     const method = id ? 'PUT' : 'POST';
     const url = id ? `/api/admin/content/${id}` : '/api/admin/content';
 
@@ -1109,6 +1119,20 @@ function escapeHtml(str) {
 
 el('db-new')?.addEventListener('click', newDbItem);
 el('db-refresh')?.addEventListener('click', () => loadDbItems(dbState.currentType));
+el('db-seed').addEventListener('click', async (event) => {
+    if (!confirm('补齐缺失的初始内容？已有条目不会被覆盖，删除过的初始条目将恢复。')) return;
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+        const result = await api('/api/admin/content/seed', { method: 'POST' });
+        showToast(`已补齐 ${result.inserted} 条初始内容`, 'ok');
+        if (dbState.currentType) await loadDbItems(dbState.currentType);
+    } catch (error) {
+        showToast(error.message, 'error');
+    } finally {
+        button.disabled = false;
+    }
+});
 el('db-cancel')?.addEventListener('click', () => { 
     const wrap = el('db-form-wrap'); 
     if (wrap) wrap.hidden = true; 

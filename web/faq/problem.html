@@ -467,7 +467,7 @@
     <script src="/lib/all.js"></script>
     <script>
         let allFaqItems = [];
-        let allFaqContents = {};
+        const allFaqContents = Object.create(null);
 
         // 从 API 加载 FAQ 列表和内容
         async function loadFaqData() {
@@ -511,7 +511,11 @@
             document.title = problem.title + ' - 问题详情';
 
             if (problem.tags && problem.tags.length > 0) {
-                tagsElement.innerHTML = problem.tags.map(t => `<mark>${t}</mark>`).join(' ');
+                tagsElement.replaceChildren(...problem.tags.map(tag => {
+                    const mark = document.createElement('mark');
+                    mark.textContent = tag;
+                    return mark;
+                }));
             }
 
             // 显示加载状态
@@ -519,7 +523,7 @@
 
             // 尝试从数据库读取内容，否则从文件读取
             const dbContent = allFaqContents[problem.id];
-            if (dbContent) {
+            if (Object.hasOwn(allFaqContents, problem.id)) {
                 contentElement.innerHTML = marked.parse(dbContent);
                 bindImageClicks();
                 contentElement.removeAttribute('data-loading');

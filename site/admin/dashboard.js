@@ -9,6 +9,7 @@
         widgets: [],
         types: [],
         loaded: false,
+        busy: false,
         timers: [],
         dragId: null
     };
@@ -35,34 +36,69 @@
         return store.types.find((item) => item.type === type) || { type, label: type, size: 1, site: false };
     }
 
-    function save(silent) {
-        const payload = store.widgets.map((widget) => ({
-            id: widget.id,
-            type: widget.type,
-            title: widget.title,
-            size: widget.size,
-            visible: widget.visible,
-            onSite: widget.onSite,
-            config: widget.config
-        }));
-        return api('/api/admin/dashboard', { method: 'PUT', body: JSON.stringify({ widgets: payload }) })
-            .then(() => {
-                if (!silent) showToast('布局已保存', 'ok');
-            })
-            .catch((error) => showToast(error.message, 'error'));
+    function syncControls() {
+        const disabled = !store.loaded || store.busy;
+        el('widget-type').disabled = disabled || !store.types.length;
+        el('widget-add').disabled = disabled || !store.types.length;
+        el('widget-reset').disabled = disabled;
+        const grid = el('widget-grid');
+        grid.querySelectorAll('.w-tools button, [data-field], [data-widget-apply]').forEach((control) => {
+            control.disabled = disabled;
+        });
+        grid.querySelectorAll('.w-card').forEach((card) => {
+            card.draggable = !disabled;
+        });
+    }
+
+    async function updateLayout(request, message) {
+        if (!store.loaded || store.busy) return;
+        store.busy = true;
+        store.dragId = null;
+        syncControls();
+        try {
+            const data = await request();
+            if (data?.ok !== true || !Array.isArray(data.widgets)) {
+                throw new Error(data?.error || '保存布局失败');
+            }
+            store.widgets = data.widgets;
+            if (message) showToast(message, 'ok');
+        } catch (error) {
+            showToast(error.message, 'error');
+        } finally {
+            store.busy = false;
+            render();
+            syncControls();
+        }
+    }
+
+    function save(change, silent) {
+        return updateLayout(() => {
+            // Edit a draft so a failed request leaves the persisted layout intact.
+            const widgets = JSON.parse(JSON.stringify(store.widgets));
+            change(widgets);
+            return api('/api/admin/dashboard', { method: 'PUT', body: JSON.stringify({ widgets }) });
+        }, silent ? null : '布局已保存');
     }
 
     async function init() {
+        if (store.busy) return;
         if (!store.loaded) {
+            store.busy = true;
             try {
                 const data = await api('/api/admin/dashboard');
-                store.widgets = data.widgets || [];
-                store.types = data.types || [];
+                if (!Array.isArray(data?.widgets) || !Array.isArray(data.types)) {
+                    throw new Error(data?.error || '加载布局失败');
+                }
+                store.widgets = data.widgets;
+                store.types = data.types;
                 store.loaded = true;
                 renderTypeSelect();
             } catch (error) {
                 showToast(error.message, 'error');
                 return;
+            } finally {
+                store.busy = false;
+                syncControls();
             }
         }
         render();
@@ -110,16 +146,14 @@
         sizeBtn.type = 'button';
         sizeBtn.title = '切换宽度';
         sizeBtn.addEventListener('click', () => {
-            widget.size = widget.size >= 3 ? 1 : widget.size + 1;
-            save(true).then(render);
+            save((widgets) => { widgets[index].size = widget.size >= 3 ? 1 : widget.size + 1; }, true);
         });
 
         if (meta.site) {
             const siteBtn = h('button', `w-btn${widget.onSite ? ' active' : ''}`, widget.onSite ? '已在官网' : '显示到官网');
             siteBtn.type = 'button';
             siteBtn.addEventListener('click', () => {
-                widget.onSite = !widget.onSite;
-                save(true).then(render);
+                save((widgets) => { widgets[index].onSite = !widget.onSite; }, true);
             });
             tools.appendChild(siteBtn);
         }
@@ -127,8 +161,7 @@
         const delBtn = h('button', 'w-btn danger', '删除');
         delBtn.type = 'button';
         delBtn.addEventListener('click', () => {
-            store.widgets = store.widgets.filter((item) => item.id !== widget.id);
-            save(true).then(render);
+            save((widgets) => { widgets.splice(index, 1); }, true);
         });
 
         tools.append(sizeBtn, delBtn);
@@ -138,6 +171,10 @@
         card.append(head, body);
 
         card.addEventListener('dragstart', (event) => {
+            if (store.busy) {
+                event.preventDefault();
+                return;
+            }
             store.dragId = widget.id;
             card.classList.add('dragging');
             event.dataTransfer.effectAllowed = 'move';
@@ -160,9 +197,10 @@
             const from = store.widgets.findIndex((item) => item.id === store.dragId);
             const to = store.widgets.findIndex((item) => item.id === widget.id);
             if (from < 0 || to < 0 || from === to) return;
-            const [moved] = store.widgets.splice(from, 1);
-            store.widgets.splice(to, 0, moved);
-            save(true).then(render);
+            save((widgets) => {
+                const [moved] = widgets.splice(from, 1);
+                widgets.splice(to, 0, moved);
+            }, true);
         });
 
         renderBody(body, widget, index);
@@ -415,6 +453,7 @@
         const actions = h('div', 'w-actions');
         const apply = h('button', 'w-btn active', '应用');
         apply.type = 'button';
+        apply.dataset.widgetApply = '';
         actions.appendChild(apply);
         form.appendChild(actions);
         body.appendChild(form);
@@ -423,7 +462,7 @@
             form.querySelectorAll('[data-field]').forEach((input) => {
                 values[input.dataset.field] = input.value;
             });
-            onApply(values);
+            save((widgets) => onApply(widgets[store.widgets.indexOf(widget)], values));
         });
     }
 
@@ -431,10 +470,9 @@
         configShell(body, widget, [
             { name: 'title', value: widget.title, placeholder: '小组件标题' },
             { name: 'text', type: 'textarea', rows: 4, value: widget.config.text || '', placeholder: '文本内容，支持换行' }
-        ], (values) => {
+        ], (widget, values) => {
             widget.title = values.title;
             widget.config.text = values.text;
-            save().then(render);
         });
     }
 
@@ -443,13 +481,12 @@
         configShell(body, widget, [
             { name: 'title', value: widget.title, placeholder: '小组件标题' },
             { name: 'links', type: 'textarea', rows: 4, value: lines, placeholder: '每行一条：名称|链接' }
-        ], (values) => {
+        ], (widget, values) => {
             widget.title = values.title;
             widget.config.links = values.links.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line) => {
                 const parts = line.split('|');
                 return { label: (parts[0] || '').trim(), url: (parts[1] || '').trim() };
             }).filter((link) => link.url);
-            save().then(render);
         });
     }
 
@@ -457,10 +494,9 @@
         configShell(body, widget, [
             { name: 'title', value: widget.title, placeholder: '小组件标题' },
             { name: 'html', type: 'textarea', rows: 5, value: widget.config.html || '', placeholder: '任意 HTML，会原样显示在官网上' }
-        ], (values) => {
+        ], (widget, values) => {
             widget.title = values.title;
             widget.config.html = values.html;
-            save().then(render);
         });
     }
 
@@ -469,41 +505,32 @@
             { name: 'title', value: widget.title, placeholder: '小组件标题' },
             { name: 'url', value: widget.config.url || '', placeholder: '要嵌入的地址，例如 MCSM 面板 URL' },
             { name: 'height', type: 'number', value: widget.config.height || 420, placeholder: '高度（像素）' }
-        ], (values) => {
+        ], (widget, values) => {
             widget.title = values.title;
             widget.config.url = values.url;
             widget.config.height = Number(values.height) || 420;
-            save().then(render);
         });
     }
 
     el('widget-add').addEventListener('click', () => {
+        if (!store.loaded || store.busy) return;
         const type = el('widget-type').value;
-        const meta = typeMeta(type);
-        const id = 'w-' + Math.random().toString(16).slice(2, 10);
-        store.widgets.push({
-            id,
+        const meta = store.types.find((item) => item.type === type);
+        if (!meta) return;
+        save((widgets) => widgets.push({
+            id: 'w-' + Math.random().toString(16).slice(2, 10),
             type,
             title: meta.label,
             size: meta.size || 1,
             visible: true,
             onSite: false,
             config: type === 'note' ? { text: '' } : type === 'links' ? { links: [] } : {}
-        });
-        save(true).then(render);
+        }), true);
     });
 
-    el('widget-reset').addEventListener('click', async () => {
-        if (!confirm('恢复默认小组件布局？')) return;
-        try {
-            const data = await api('/api/admin/dashboard/reset', { method: 'POST' });
-            store.widgets = data.widgets || [];
-            store.loaded = true;
-            render();
-            showToast('已恢复默认布局', 'ok');
-        } catch (error) {
-            showToast(error.message, 'error');
-        }
+    el('widget-reset').addEventListener('click', () => {
+        if (!store.loaded || store.busy || !confirm('恢复默认小组件布局？')) return;
+        updateLayout(() => api('/api/admin/dashboard/reset', { method: 'POST' }), '已恢复默认布局');
     });
 
     window.QYDashboard = { init };

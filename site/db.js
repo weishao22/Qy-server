@@ -75,59 +75,57 @@ function parseJsArray(source, variable) {
   return null;
 }
 
-function list(type) {
-  const rows = db.prepare('SELECT * FROM content WHERE type = ? ORDER BY sort_order ASC, id ASC').all(type);
-  return rows.map((r) => ({
+function serialize(r) {
+  let value = r.value;
+  if (r.type === 'faq_content' && value.startsWith('{')) {
+    // Older versions accidentally stored the Markdown editor form as JSON.
+    try {
+      const legacy = JSON.parse(value);
+      if (typeof legacy.content === 'string' && Object.keys(legacy).every((key) => key === 'title' || key === 'content')) {
+        value = legacy.content;
+      }
+    } catch { /* Raw Markdown. */ }
+  }
+  return {
     id: r.id,
     type: r.type,
     key: r.key,
     title: r.title,
     description: r.description,
-    value: r.value,
+    value,
     route: r.route,
     sortOrder: r.sort_order,
     createdAt: r.created_at,
     updatedAt: r.updated_at
-  }));
+  };
+}
+
+function list(type) {
+  return db.prepare('SELECT * FROM content WHERE type = ? ORDER BY sort_order ASC, id ASC').all(type).map(serialize);
 }
 
 function get(id) {
   const row = db.prepare('SELECT * FROM content WHERE id = ?').get(id);
-  if (!row) return null;
-  return {
-    id: row.id,
-    type: row.type,
-    key: row.key,
-    title: row.title,
-    description: row.description,
-    value: row.value,
-    route: row.route,
-    sortOrder: row.sort_order,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at
-  };
+  return row ? serialize(row) : null;
 }
 
-function upsert(item) {
+function insert(item) {
   const ts = now();
-  const existing = db.prepare('SELECT id FROM content WHERE type = ? AND key = ?').get(item.type, item.key);
-  if (existing) {
-    db.prepare(`
-      UPDATE content SET title = ?, description = ?, value = ?, route = ?, sort_order = ?, updated_at = ?
-      WHERE id = ?
-    `).run(item.title, item.description, item.value, item.route, item.sortOrder, ts, existing.id);
-    return existing.id;
-  } else {
-    const info = db.prepare(`
-      INSERT INTO content (type, key, title, description, value, route, sort_order, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(item.type, item.key, item.title, item.description, item.value, item.route, item.sortOrder, ts, ts);
-    return info.lastInsertRowid;
-  }
+  return db.prepare(`
+    INSERT INTO content (type, key, title, description, value, route, sort_order, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(item.type, item.key, item.title, item.description, item.value, item.route, item.sortOrder, ts, ts).lastInsertRowid;
+}
+
+function update(id, item) {
+  db.prepare(`
+    UPDATE content SET key = ?, title = ?, description = ?, value = ?, route = ?, sort_order = ?, updated_at = ?
+    WHERE id = ?
+  `).run(item.key, item.title, item.description, item.value, item.route, item.sortOrder, now(), id);
 }
 
 function remove(id) {
-  db.prepare('DELETE FROM content WHERE id = ?').run(id);
+  return db.prepare('DELETE FROM content WHERE id = ?').run(id).changes > 0;
 }
 
 function removeByTypeAndKey(type, key) {
@@ -135,7 +133,7 @@ function removeByTypeAndKey(type, key) {
 }
 
 function seedFromJson() {
-  const jsonDir = path.join(ROOT, 'Configs');
+  const seedDir = path.join(__dirname, '.seed');
   const files = [
     { file: 'images.json', type: 'gallery_image' },
     { file: 'updata.json', type: 'changelog_entry' },
@@ -145,111 +143,72 @@ function seedFromJson() {
     { file: 'dontShowPopup.json', type: 'popup_announcement' }
   ];
 
-  for (const { file, type } of files) {
-    const full = path.join(jsonDir, file);
-    if (!fs.existsSync(full)) continue;
-    try {
-      const data = JSON.parse(fs.readFileSync(full, 'utf8'));
+  const insert = db.prepare(`
+    INSERT INTO content (type, key, title, description, value, route, sort_order, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(type, key) DO NOTHING
+  `);
+  return db.transaction(() => {
+    const ts = now();
+    let inserted = 0;
+    const add = (type, key, title, description, value, route, sortOrder) => {
+      inserted += insert.run(type, key, title, description, value, route, sortOrder, ts, ts).changes;
+    };
+
+    for (const { file, type } of files) {
+      const data = JSON.parse(fs.readFileSync(path.join(seedDir, file), 'utf8'));
       let items = [];
       let single = false;
       if (Array.isArray(data)) {
         items = data;
       } else if (Array.isArray(data.items)) {
         items = data.items;
-      } else if (data.categories && Array.isArray(data.categories)) {
-        // 嵌套结构：{ categories: [{ items/commands: [...] }] }
-        data.categories.forEach((cat) => {
-          const catItems = cat.items || cat.commands || [];
-          items.push(...catItems);
-        });
+      } else if (Array.isArray(data.categories)) {
+        items = data.categories.flatMap((cat) => cat.items || cat.commands || []);
       } else if (Array.isArray(data.timeline)) {
         items = data.timeline;
       } else {
-        // 对象型配置（如弹窗公告）：整体存为一条
         single = true;
         items = [data];
       }
       items.forEach((item, i) => {
-        upsert({
+        add(
           type,
-          key: single ? 'main' : `${type}-${i}`,
-          title: item.title || item.name || '',
-          description: item.description || item.desc || item.text || '',
-          value: JSON.stringify(item),
-          route: `/Configs/${file}`,
-          sortOrder: i
-        });
+          single ? 'main' : `${type}-${i}`,
+          item.title || item.name || '',
+          item.description || item.desc || item.text || '',
+          JSON.stringify(item),
+          `/Configs/${file}`,
+          i
+        );
       });
-    } catch (e) {
-      console.warn(`[db] skip ${file}: ${e.message}`);
     }
-  }
 
-  /* ---------------- FAQ：从 faqList.js 和 faq/md/*.md 种子 ---------------- */
+    const faqDir = path.join(seedDir, 'faq');
+    const mdDir = path.join(faqDir, 'md');
+    const problems = parseJsArray(fs.readFileSync(path.join(faqDir, 'faqList.js'), 'utf8'), 'problems');
+    if (!Array.isArray(problems)) throw new Error('Invalid FAQ seed: faqList.js');
 
-  const faqListFile = path.join(jsonDir, 'faq', 'faqList.js');
-  const faqMdDir = path.join(jsonDir, 'faq', 'md');
-  if (fs.existsSync(faqListFile)) {
-    try {
-      const source = fs.readFileSync(faqListFile, 'utf8');
-      const problems = parseJsArray(source, 'problems');
-      if (Array.isArray(problems)) {
-        problems.forEach((p, i) => {
-          upsert({
-            type: 'faq_item',
-            key: p.id || `faq-${i}`,
-            title: p.title || '',
-            description: p.summary || '',
-            value: JSON.stringify(p),
-            route: '/Configs/faq/faqList.js',
-            sortOrder: i
-          });
-          // 同步迁移对应的 MD 内容
-          if (p.file) {
-            const mdFull = path.join(ROOT, p.file.replace(/^\//, ''));
-            if (fs.existsSync(mdFull)) {
-              const mdContent = fs.readFileSync(mdFull, 'utf8');
-              upsert({
-                type: 'faq_content',
-                key: p.id || `faq-${i}`,
-                title: p.title || '',
-                description: '',
-                value: mdContent,
-                route: p.file,
-                sortOrder: i
-              });
-            }
-          }
-        });
+    const referenced = new Set();
+    problems.forEach((problem, i) => {
+      const key = problem.id || `faq-${i}`;
+      const title = problem.title || '';
+      add('faq_item', key, title, problem.summary || '', JSON.stringify(problem), '/Configs/faq/faqList.js', i);
+      if (problem.file) {
+        const name = path.basename(problem.file);
+        referenced.add(name);
+        add('faq_content', key, title, '', fs.readFileSync(path.join(mdDir, name), 'utf8'), problem.file, i);
       }
-    } catch (e) {
-      console.warn('[db] skip faqList.js: ' + e.message);
-    }
-  }
+    });
 
-  /* 兜底：迁移 faq/md 下所有未被 faqList 引用的 MD 文件 */
-  if (fs.existsSync(faqMdDir)) {
-    try {
-      fs.readdirSync(faqMdDir).filter((n) => /\.md$/i.test(n)).forEach((name, i) => {
-        const full = path.join(faqMdDir, name);
-        const key = 'md-' + name.replace(/\.md$/i, '');
-        const existing = db.prepare('SELECT id FROM content WHERE type = ? AND key = ?').get('faq_content', key);
-        if (existing) return;
-        const mdContent = fs.readFileSync(full, 'utf8');
-        upsert({
-          type: 'faq_content',
-          key,
-          title: name,
-          description: '',
-          value: mdContent,
-          route: `/Configs/faq/md/${name}`,
-          sortOrder: 1000 + i
-        });
-      });
-    } catch (e) {
-      console.warn('[db] skip faq/md: ' + e.message);
-    }
-  }
+    // FAQ detail pages look up Markdown by question ID; import only unlinked files here.
+    fs.readdirSync(mdDir).filter((name) => /\.md$/i.test(name)).sort().forEach((name, i) => {
+      if (referenced.has(name)) return;
+      add('faq_content', `md-${name.replace(/\.md$/i, '')}`, name, '',
+        fs.readFileSync(path.join(mdDir, name), 'utf8'), `/Configs/faq/md/${name}`, 1000 + i);
+    });
+    return inserted;
+  })();
 }
 
-module.exports = { db, list, get, upsert, remove, removeByTypeAndKey, seedFromJson };
+module.exports = { db, list, get, insert, update, remove, removeByTypeAndKey, seedFromJson };

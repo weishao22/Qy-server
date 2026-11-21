@@ -932,10 +932,6 @@
     function init() {
         removeOldEditor();
         enhanceContent();
-        try {
-            var edit = new URLSearchParams(location.search).get('edit') === '1';
-            if (edit) startEditor();
-        } catch (e) {}
     }
 
     if (document.readyState === 'loading') {

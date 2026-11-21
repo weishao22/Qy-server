@@ -19,29 +19,34 @@ function hashPassword(password, salt) {
 
 function writeAdmin(data) {
   ensureDataDir();
-  fs.writeFileSync(ADMIN_FILE, JSON.stringify(data, null, 2), { encoding: 'utf8', mode: 0o600 });
+  const tmp = `${ADMIN_FILE}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(data, null, 2), { encoding: 'utf8', mode: 0o600 });
+  fs.renameSync(tmp, ADMIN_FILE);
+}
+
+function initialize() {
+  const existing = readAdmin();
+  if (existing && hashPassword('admin123', existing.salt) !== existing.hash) return true;
+  const initial = process.env.ADMIN_PASSWORD;
+  if (typeof initial !== 'string' || initial.trim().length < 12) return false;
+  const salt = crypto.randomBytes(16).toString('hex');
+  writeAdmin({
+    salt,
+    hash: hashPassword(initial, salt),
+    mustChange: true,
+    updatedAt: new Date().toISOString()
+  });
+  return true;
 }
 
 function readAdmin() {
-  ensureDataDir();
-  if (!fs.existsSync(ADMIN_FILE)) {
-    const salt = crypto.randomBytes(16).toString('hex');
-    const initial = process.env.ADMIN_PASSWORD || 'admin123';
-    const data = {
-      salt,
-      hash: hashPassword(initial, salt),
-      mustChange: true,
-      updatedAt: new Date().toISOString()
-    };
-    writeAdmin(data);
-    return data;
-  }
-  const raw = fs.readFileSync(ADMIN_FILE, 'utf8');
-  return JSON.parse(raw);
+  if (!fs.existsSync(ADMIN_FILE)) return null;
+  return JSON.parse(fs.readFileSync(ADMIN_FILE, 'utf8'));
 }
 
 function verifyPassword(password) {
   const data = readAdmin();
+  if (!data) return false;
   const expected = Buffer.from(data.hash, 'hex');
   const actual = Buffer.from(hashPassword(password, data.salt), 'hex');
   if (expected.length !== actual.length) return false;
@@ -52,8 +57,8 @@ function changePassword(current, next) {
   if (!verifyPassword(current)) {
     return { ok: false, error: '当前密码不正确' };
   }
-  if (typeof next !== 'string' || next.length < 6) {
-    return { ok: false, error: '新密码至少需要 6 个字符' };
+  if (typeof next !== 'string' || next.trim().length < 12 || current === next) {
+    return { ok: false, error: '新密码至少需要 12 个字符，且不能与当前密码相同' };
   }
   const salt = crypto.randomBytes(16).toString('hex');
   writeAdmin({
@@ -62,11 +67,12 @@ function changePassword(current, next) {
     mustChange: false,
     updatedAt: new Date().toISOString()
   });
+  sessions.clear();
   return { ok: true };
 }
 
 function mustChangePassword() {
-  return Boolean(readAdmin().mustChange);
+  return Boolean(readAdmin()?.mustChange);
 }
 
 function createSession() {
@@ -99,6 +105,7 @@ function pruneSessions() {
 
 module.exports = {
   DATA_DIR,
+  initialize,
   verifyPassword,
   changePassword,
   mustChangePassword,

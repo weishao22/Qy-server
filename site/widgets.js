@@ -29,7 +29,7 @@ function defaults() {
     { id: 'w-comments', type: 'comments', title: '最新评论', size: 1, visible: true, onSite: false, config: {} },
     { id: 'w-visits', type: 'visits', title: '访问量统计', size: 2, visible: true, onSite: false, config: {} },
     { id: 'w-content', type: 'content', title: '内容统计', size: 1, visible: true, onSite: false, config: {} },
-    { id: 'w-note', type: 'note', title: '公告', size: 1, visible: true, onSite: true, config: { text: '欢迎使用 QYServer 控制台，可在右侧添加或拖动小组件。' } }
+    { id: 'w-note', type: 'note', title: '公告', size: 1, visible: true, onSite: false, config: { text: '欢迎使用 QYServer 控制台，可在右侧添加或拖动小组件。' } }
   ];
 }
 
@@ -101,29 +101,42 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;');
 }
 
+function webUrl(value) {
+  if (typeof value !== 'string' || !value.trim()) return '';
+  try {
+    const url = new URL(value, 'https://localhost/');
+    return url.protocol === 'https:' || url.protocol === 'http:' ? value.trim() : '';
+  } catch {
+    return '';
+  }
+}
+
 function renderSiteWidget(widget) {
+  const id = escapeHtml(widget.id);
   const title = widget.title ? `<h3 class="qy-site-widget-title">${escapeHtml(widget.title)}</h3>` : '';
   if (widget.type === 'note') {
     const text = escapeHtml(widget.config.text || '').replace(/\r?\n/g, '<br>');
-    return `<div class="qy-site-widget" data-qy-widget-card="${widget.id}">${title}<div class="qy-site-widget-body">${text}</div></div>`;
+    return `<div class="qy-site-widget" data-qy-widget-card="${id}">${title}<div class="qy-site-widget-body">${text}</div></div>`;
   }
   if (widget.type === 'html') {
-    return `<div class="qy-site-widget" data-qy-widget-card="${widget.id}">${title}<div class="qy-site-widget-body">${sanitizeHtml(widget.config.html || '')}</div></div>`;
+    return `<div class="qy-site-widget" data-qy-widget-card="${id}">${title}<div class="qy-site-widget-body">${sanitizeHtml(widget.config.html || '')}</div></div>`;
   }
   if (widget.type === 'links') {
     const links = Array.isArray(widget.config.links) ? widget.config.links : [];
     const items = links
-      .filter((link) => link && link.url)
-      .map((link) => `<a class="qy-site-widget-link" href="${escapeHtml(link.url)}"><i class="fas fa-arrow-right"></i> ${escapeHtml(link.label || link.url)}</a>`)
+      .filter((link) => link && webUrl(link.url))
+      .map((link) => `<a class="qy-site-widget-link" href="${escapeHtml(webUrl(link.url))}"><i class="fas fa-arrow-right"></i> ${escapeHtml(link.label || link.url)}</a>`)
       .join('');
-    return `<div class="qy-site-widget" data-qy-widget-card="${widget.id}">${title}<div class="qy-site-widget-body">${items || '<span class="qy-site-widget-empty">暂无链接</span>'}</div></div>`;
+    return `<div class="qy-site-widget" data-qy-widget-card="${id}">${title}<div class="qy-site-widget-body">${items || '<span class="qy-site-widget-empty">暂无链接</span>'}</div></div>`;
   }
   if (widget.type === 'iframe') {
     const height = Math.max(160, Math.min(1200, Number(widget.config.height) || 420));
-    return `<div class="qy-site-widget qy-site-widget-wide" data-qy-widget-card="${widget.id}">${title}<iframe class="qy-site-widget-iframe" src="${escapeHtml(widget.config.url || '')}" loading="lazy" style="height:${height}px"></iframe></div>`;
+    const url = webUrl(widget.config.url);
+    if (!url) return '';
+    return `<div class="qy-site-widget qy-site-widget-wide" data-qy-widget-card="${id}">${title}<iframe class="qy-site-widget-iframe" src="${escapeHtml(url)}" title="${escapeHtml(widget.title || '嵌入页面')}" loading="lazy" style="height:${height}px"></iframe></div>`;
   }
   if (widget.type === 'status') {
-    return `<div class="qy-site-widget" data-qy-widget-card="${widget.id}">${title}<div class="qy-site-widget-body qy-widget-status" data-qy-widget="status"><span class="qy-site-widget-empty">服务器状态加载中…</span></div></div>`;
+    return `<div class="qy-site-widget" data-qy-widget-card="${id}">${title}<div class="qy-site-widget-body qy-widget-status" data-qy-widget="status"><span class="qy-site-widget-empty">服务器状态加载中…</span></div></div>`;
   }
   return '';
 }

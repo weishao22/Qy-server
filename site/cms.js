@@ -269,7 +269,7 @@ function escapeHtml(value) {
 }
 
 function escapeAttr(value) {
-  return escapeHtml(value).replace(/"/g, '&quot;');
+  return escapeHtml(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function applyOverrides(html, sitePath, store, options = {}) {
@@ -313,9 +313,10 @@ function applyOverrides(html, sitePath, store, options = {}) {
       const value = resolve(key, range.value);
       if (value !== null) {
         const loc = node.sourceCodeLocation;
+        const rawRange = trimmedRange(html.slice(loc.startOffset, loc.endOffset));
         splices.push({
-          start: loc.startOffset + range.start,
-          end: loc.startOffset + range.end,
+          start: loc.startOffset + rawRange.start,
+          end: loc.startOffset + rawRange.end,
           text: escapeHtml(value)
         });
       }
@@ -350,12 +351,20 @@ function applyOverrides(html, sitePath, store, options = {}) {
       if (!loc) return;
       const next = resolve(key, value);
       if (next === null) return;
-      const slice = html.slice(loc.startOffset, loc.endOffset);
-      if (!/^(["'])/.test(slice)) return;
+      const refresh = el.attribs['http-equiv']?.toLowerCase() === 'refresh';
+      if (target.attr === 'src' || target.attr === 'href' || refresh) {
+        const delay = refresh && /^\s*\d+\s*(?:;\s*url\s*=\s*([^"'\s]+)\s*)?$/i.exec(next);
+        if (refresh && !delay) return;
+        try {
+          const { protocol } = new URL(refresh ? delay[1] || '' : next, 'https://localhost/');
+          if (protocol !== 'https:' && protocol !== 'http:' &&
+              !(target.attr === 'href' && (protocol === 'mailto:' || protocol === 'tel:'))) return;
+        } catch { return; }
+      }
       splices.push({
-        start: loc.startOffset + 1,
-        end: loc.endOffset - 1,
-        text: escapeAttr(next)
+        start: loc.startOffset,
+        end: loc.endOffset,
+        text: `${target.attr}="${escapeAttr(next)}"`
       });
     });
   }
@@ -421,8 +430,8 @@ function injectSiteWidgets(html, sitePath) {
   }
   if (!widgets) return html;
   const marker = /(\s*)<div class="comments-wrapper">/i;
-  if (marker.test(html)) return html.replace(marker, `$1${widgets}$1$1<div class="comments-wrapper">`);
-  return html.replace(/<\/body>/i, `${widgets}\n</body>`);
+  if (marker.test(html)) return html.replace(marker, (match, space) => `${space}${widgets}${match}`);
+  return html.replace(/<\/body>/i, (end) => `${widgets}\n${end}`);
 }
 
 function stripTwikooCdn(html) {
@@ -454,13 +463,11 @@ const FORCE_STATIC_PATHS = new Set([
   '/faq/', '/faq', '/faq/problem.html'
 ]);
 
-function renderPage(file, options = {}) {
-  const html = stripTwikooCdn(fs.readFileSync(file, 'utf8'));
-  // 重要：区块覆盖会替换整页 body，并丢弃 AllComponents.js 等脚本，
-  // 导致导航、轮播、弹窗、图廊详情、更新日志等原版功能全部失效。
-  // 这里停用区块覆盖，直接输出原版静态页面；页面数据统一由数据库 API 提供。
-  let output = injectClientRuntime(html);
-  return output;
+function renderPage(file) {
+  const sitePath = toSitePath(file);
+  const html = applyOverrides(fs.readFileSync(file, 'utf8'), sitePath, loadStore());
+  // Preserve the original body and scripts until block publishing can do so safely.
+  return injectClientRuntime(injectSiteWidgets(stripTwikooCdn(html), sitePath));
 }
 
 function saveEntries(changes) {

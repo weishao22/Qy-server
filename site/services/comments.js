@@ -91,6 +91,9 @@ function counts() {
   for (const item of comments) {
     map.set(item.path, (map.get(item.path) || 0) + 1);
   }
+  for (const pagePath of Object.keys(views)) {
+    if (!map.has(pagePath)) map.set(pagePath, 0);
+  }
   return Array.from(map.entries())
     .map(([pagePath, count]) => ({ path: pagePath, comments: count, views: views[pagePath] || 0 }))
     .sort((a, b) => b.views - a.views);

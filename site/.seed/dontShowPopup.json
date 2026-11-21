@@ -1,0 +1,23 @@
+{
+  "popupVersion": "20260706",
+  "title": "公告",
+  "buttonText": "知道了",
+  "content": [
+    "<p>欢迎来到QYServer！</p>",
+    "<p>请务必遵守服务器规则，共同维护良好的游戏环境</p>",
+    "<p>当您看到此公告时<br>说明基岩服已经完全更换了地址<br>所有老地址均不可用<br>请使用以下新地址</p>",
+    "<p>服务器地址：<i style=\"color: #f8a5c2;\">mc.qyserver.top</i><br>端口：<i style=\"color: #f8a5c2;\">41657</i></p>",
+    "<p>基岩版1.21.120+</p>",
+    "<a href=\"https://wjdc.qyserver.top/s/vN9KKR\" class=\"quick-link\"><i class=\"fas fa-question-circle\"></i>问卷调查</a>",
+    "<video src=\"https://cf-storage.qyserver.top/sky.5.10.mp4\" autoplay muted loop playsinline webkit-playsinline=\"true\" preload=\"auto\">您的浏览器不支持视频播放</video>",
+    "<div class=\"popup-image\"><a href=\"/gallery/detail.html?img=https://cloudreve.qyserver.top/f/pLlIX/2026-05-03_22.28.03.png&title=5.1%E6%B4%BB%E5%8A%A8%E6%9C%8D%E5%90%88%E7%85%A7&desc=5k 超清图片&date=2026.05.03&loc=%E6%B4%BB%E5%8A%A8%E6%9C%8D&author=weishao22&uthor=\"><img src=\"https://cloudreve.qyserver.top/f/JzySw/2026-05-03_22.28.03.webp\" alt=\"5.1活动服合照\"></a><p style=\"color: #888; font-size: 0.8rem; margin-top: 8px;\">（5.1活动服合照）</p></div>",
+    "<h5>如果您的版本不正确，请点击以下链接来下载共存版客户端</h5>",
+    "<a href=\"/download/\" class=\"quick-link\"><i class=\"fas fa-download\"></i>下载共存版</a>",
+    "<p>游戏延迟高输入 <i style=\"color: #ff8db5;\">/server</i> 来切换线路</p>",
+    "<p>推荐的互通服务器：</p>",
+    "<p>🎮java版地址：<i style=\"color: #f8a5c2;\">java.qyserver.top</i></p>",
+    "<p>📱 基岩版地址：<i style=\"color: #f8a5c2;\">javabe.qyserver.top</i><br>🔌端口：默认</p>",
+    "<p>📌支持版本：</p>",
+    "<p>• Java版：1.8 - 1.26.x (推荐 1.21.8)<br>• 基岩版：1.21.130-26.20</p>"
+  ]
+}

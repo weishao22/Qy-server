@@ -57,9 +57,9 @@
                     <p class="view-sub">功能已拆成小组件：可拖动排序、随时增删，部分小组件还能显示到官网首页。</p>
                 </div>
                 <div class="view-actions">
-                    <select id="widget-type"></select>
-                    <button type="button" class="btn-primary" id="widget-add">添加小组件</button>
-                    <button type="button" class="btn-ghost" id="widget-reset">恢复默认</button>
+                    <select id="widget-type" disabled></select>
+                    <button type="button" class="btn-primary" id="widget-add" disabled>添加小组件</button>
+                    <button type="button" class="btn-ghost" id="widget-reset" disabled>恢复默认</button>
                 </div>
             </div>
             <div id="widget-grid" class="widget-grid"></div>
@@ -79,9 +79,9 @@
                         <div>
                             <h2 id="page-title">选择一个页面</h2>
                             <p class="editor-meta" id="page-meta"></p>
+                            <p class="editor-meta">区块编辑暂不可用；可在此编辑并发布页面文字。</p>
                         </div>
                         <div class="editor-head-actions">
-                            <a class="btn-ghost" id="visual-link" href="/?edit=1" target="_blank" rel="noopener" hidden>页面上直接改</a>
                             <a class="btn-ghost" id="preview-link" href="/" target="_blank" rel="noopener" hidden>预览此页</a>
                         </div>
                     </div>
@@ -139,6 +139,7 @@
                 <div class="view-actions">
                     <button type="button" class="btn-primary" id="db-new">新建内容</button>
                     <button type="button" class="btn-ghost" id="db-refresh">刷新</button>
+                    <button type="button" class="btn-ghost" id="db-seed">补齐初始内容</button>
                 </div>
             </div>
 
@@ -252,18 +253,19 @@
     <div class="modal" id="password-modal" hidden>
         <div class="modal-card">
             <h3>修改管理密码</h3>
+            <p id="pw-required" hidden>首次登录须更换初始密码，之后才能使用管理功能。</p>
             <form id="password-form" autocomplete="off">
                 <label class="field">
                     <span>当前密码</span>
                     <input type="password" id="pw-current" required>
                 </label>
                 <label class="field">
-                    <span>新密码（至少 6 位）</span>
-                    <input type="password" id="pw-next" minlength="6" required>
+                    <span>新密码（至少 12 位）</span>
+                    <input type="password" id="pw-next" minlength="12" required>
                 </label>
                 <label class="field">
                     <span>重复新密码</span>
-                    <input type="password" id="pw-confirm" minlength="6" required>
+                    <input type="password" id="pw-confirm" minlength="12" required>
                 </label>
                 <p class="form-error" id="pw-error" hidden></p>
                 <div class="modal-actions">
